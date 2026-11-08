@@ -9,7 +9,7 @@
   // Note: Firebase Web API keys are public client identifiers (not service secrets).
   // Encoded to prevent naive scanner false-positives on GitHub.
   const FIREBASE_CONFIG = {
-    apiKey: (typeof atob === 'function' ? atob("QUl6YVN5QlVPcDh1VDB0TlJJd3FvOFlQRjZRZmNMbkg1SXdoTjNZ") : ["AIza", "SyBUOp8uT0tNRiWqo8YPF6QfcLnH5IwhN3Y"].join("")),
+    apiKey: (typeof atob === 'function' ? atob("QUl6YVN5QlVPcDh1VDB0TlJpV3FvOFlQRjZRZmNMbkg1SXdoTjNZ") : ["AIza", "SyBUOp8uT0tNRiWqo8YPF6QfcLnH5IwhN3Y"].join("")),
     authDomain: "raser-b7bdd.firebaseapp.com",
     projectId: "raser-b7bdd",
     storageBucket: "raser-b7bdd.firebasestorage.app",
@@ -801,6 +801,7 @@
         setAuthMode(false);
       }
 
+      modal.style.display = 'flex';
       modal.classList.remove('hidden');
       requestAnimationFrame(() => modal.classList.add('visible'));
     }
@@ -812,7 +813,12 @@
         return;
       }
       modal.classList.remove('visible');
-      setTimeout(() => modal.classList.add('hidden'), 200);
+      setTimeout(() => {
+        if (!modal.classList.contains('visible')) {
+          modal.classList.add('hidden');
+          modal.style.display = 'none';
+        }
+      }, 200);
     }
 
     if (btnPill) btnPill.addEventListener('click', openModal);

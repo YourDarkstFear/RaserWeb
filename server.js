@@ -946,7 +946,10 @@ const server = http.createServer(async (req, res) => {
         '.jpg': 'image/jpeg',
         '.json': 'application/json'
       };
-      res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
+      res.writeHead(200, {
+        'Content-Type': mimeTypes[ext] || 'application/octet-stream',
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      });
       fs.createReadStream(desktopPath).pipe(res);
       return;
     }
@@ -965,7 +968,10 @@ const server = http.createServer(async (req, res) => {
       '.jpg': 'image/jpeg',
       '.json': 'application/json'
     };
-    res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
+    res.writeHead(200, {
+      'Content-Type': mimeTypes[ext] || 'application/octet-stream',
+      'Cache-Control': 'no-cache, no-store, must-revalidate'
+    });
     fs.createReadStream(safePath).pipe(res);
     return;
   }
