@@ -1123,6 +1123,7 @@ body.perf .app-icon-option-box {
   overflow-y: auto;
   overflow-x: hidden;
   overflow-anchor: none !important;
+  overscroll-behavior-y: contain !important;
   padding: 28px 36px 120px 36px;
   position: relative;
   z-index: 10;
@@ -1714,6 +1715,7 @@ body.perf .my-wave-ambient-light {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  box-sizing: border-box !important;
   overflow-anchor: none !important;
 }
 .track-row {
@@ -7494,6 +7496,7 @@ body.mini.mini-lyrics-on #btn-mini-lyrics {
   box-sizing: border-box !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
+  overscroll-behavior-y: contain !important;
   padding-bottom: 24px !important;
 }
 .content-view,

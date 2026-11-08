@@ -11429,6 +11429,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     container.innerHTML = '';
     
     if (!tracks || tracks.length === 0) {
+      container.style.boxSizing = '';
+      container.style.height = '';
       container.style.minHeight = '';
       container.style.paddingTop = '0px';
       container.style.paddingBottom = '0px';
@@ -11500,39 +11502,54 @@ document.addEventListener('DOMContentLoaded', async () => {
     const itemHeight = 68;
     const overscan = 15;
     const initialTotalHeight = (tracks ? tracks.length : 0) * itemHeight;
-    container.style.minHeight = initialTotalHeight > 0 ? (initialTotalHeight + 'px') : '';
+    container.style.boxSizing = 'border-box';
+    if (initialTotalHeight > 0) {
+      container.style.height = `${initialTotalHeight}px`;
+      container.style.minHeight = `${initialTotalHeight}px`;
+    } else {
+      container.style.height = '';
+      container.style.minHeight = '';
+    }
     
     function renderChunk() {
       if (!scrollParent || container._isDraggingReorder) return;
       const currentList = container._currentTracks || tracks;
       if (!currentList || currentList.length === 0) return;
       const totalListHeight = currentList.length * itemHeight;
-      const desiredMinHeight = totalListHeight > 0 ? (totalListHeight + 'px') : '';
-      if (container.style.minHeight !== desiredMinHeight) {
-        container.style.minHeight = desiredMinHeight;
+      const desiredHeight = totalListHeight > 0 ? `${totalListHeight}px` : '';
+      if (container.style.height !== desiredHeight) {
+        container.style.height = desiredHeight;
+      }
+      if (container.style.minHeight !== desiredHeight) {
+        container.style.minHeight = desiredHeight;
+      }
+      if (container.style.boxSizing !== 'border-box') {
+        container.style.boxSizing = 'border-box';
       }
       
       let relativeTop = 0;
-      if (container.offsetParent) {
+      if (scrollParent && container.isConnected) {
+        const parentRect = scrollParent.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        if (parentRect.height > 0) {
+          relativeTop = Math.max(0, containerRect.top - parentRect.top + scrollParent.scrollTop);
+        }
+      }
+      if (relativeTop <= 0 && container.offsetParent) {
         let curr = container;
-        while (curr && curr !== scrollParent) {
+        while (curr && curr !== scrollParent && curr !== document.body) {
           relativeTop += curr.offsetTop || 0;
           curr = curr.offsetParent;
         }
       }
-      if (relativeTop <= 0 && scrollParent) {
-        const parentRect = scrollParent.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        if (parentRect.height > 0 && containerRect.height > 0) {
-          relativeTop = Math.max(0, containerRect.top - parentRect.top + scrollParent.scrollTop);
-        } else if (context === 'playlist') {
-          relativeTop = 300;
-        }
+      if (relativeTop <= 0 && context === 'playlist') {
+        relativeTop = 320;
       }
       
       const visibleTop = Math.max(0, scrollParent.scrollTop - relativeTop);
-      let startIndex = Math.floor(visibleTop / itemHeight) - overscan;
       const clientHeight = (scrollParent && scrollParent.clientHeight > 0) ? scrollParent.clientHeight : (window.innerHeight || 800);
+
+      let startIndex = Math.floor(visibleTop / itemHeight) - overscan;
       let endIndex = Math.ceil((visibleTop + clientHeight) / itemHeight) + overscan;
       
       startIndex = Math.floor(startIndex / 5) * 5;
@@ -11540,6 +11557,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       startIndex = Math.max(0, startIndex);
       endIndex = Math.min(currentList.length, endIndex);
+      if (endIndex <= startIndex) {
+        startIndex = Math.max(0, endIndex - Math.max(overscan, 10));
+      }
       
       if (container._lastStartIndex === startIndex && container._lastEndIndex === endIndex && container._renderedTracksRef === currentList) return;
       container._lastStartIndex = startIndex;
@@ -11556,8 +11576,10 @@ document.addEventListener('DOMContentLoaded', async () => {
          fragment.appendChild(row);
       }
       
-      container.style.paddingTop = `${startIndex * itemHeight}px`;
-      container.style.paddingBottom = `${Math.max(0, currentList.length - endIndex) * itemHeight}px`;
+      const padTop = startIndex * itemHeight;
+      const padBottom = Math.max(0, currentList.length - endIndex) * itemHeight;
+      container.style.paddingTop = `${padTop}px`;
+      container.style.paddingBottom = `${padBottom}px`;
       if (typeof container.replaceChildren === 'function') {
         container.replaceChildren(fragment);
       } else {
