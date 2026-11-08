@@ -203,7 +203,7 @@ try { window.electronAPI.storageSaveSync(diskMap); } catch (_) {}
   };
   const safety = setTimeout(finish, 1850);
   try {
-    const res = await fetch('/assets/raser.svg').catch(() => fetch('/assets/riff.svg'));
+    const res = await fetch('../../assets/raser.svg').catch(() => fetch('../../assets/riff.svg'));
     const svgText = await res.text();
     host.innerHTML = svgText;
     const svg = host.querySelector('svg');
@@ -530,8 +530,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (lang === 'en') return str;
     const dict = i18nSessionMap.get(lang);
     if (dict && dict.has(str)) return dict.get(str);
-    if (state.serverPort || !window.electronAPI) {
-      fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/i18n-batch`, {
+    if (state.serverPort) {
+      fetch(`http://127.0.0.1:${state.serverPort}/api/i18n-batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ target: lang, texts: [str] })
@@ -973,6 +973,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (_) {}
   });
 
+  window.addEventListener('raser:cloud-settings-updated', () => {
+    try {
+      const lang = localStorage.getItem('riff_ui_lang');
+      if (lang && typeof applyI18n === 'function') applyI18n(lang);
+      const font = localStorage.getItem('riff_font');
+      if (font && typeof applyFont === 'function') applyFont(font);
+      if (typeof syncSettingsSlidersToState === 'function') syncSettingsSlidersToState();
+      if (typeof applyVisualEffects === 'function') applyVisualEffects();
+      if (typeof renderPresets === 'function') renderPresets();
+      if (typeof refreshNavBadges === 'function') refreshNavBadges();
+      const themeAccent = localStorage.getItem('riff_theme_accent');
+      if (typeof applyThemeAccent === 'function' && themeAccent) applyThemeAccent(themeAccent);
+      if (state.currentView === 'discover' && typeof restoreDiscoverHomeState === 'function') {
+        restoreDiscoverHomeState(false);
+      }
+    } catch (_) {}
+  });
+
   applyFont(state.riffFont);
 
   if (window.electronAPI && window.electronAPI.getServerPort) {
@@ -1019,7 +1037,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function sendStateToServer(currentWordText = '', wordIndex = -1, lineIndex = -1) {
     if (!state.currentTrack) return;
-    fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/state`, {
+    fetch(`http://127.0.0.1:${state.serverPort}/api/state`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -4448,7 +4466,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (nextTrack && !nextTrack._preloadedStreamUrl && !nextTrack.isCached && nextTrack.platform !== 'local') {
         const qQuality = encodeURIComponent(localStorage.getItem('riff_audio_quality') || 'medium');
         const qFallback = encodeURIComponent(nextTrack.searchQuery || ((nextTrack.artist ? nextTrack.artist + ' - ' : '') + nextTrack.title));
-        const fetchUrl = `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/stream-info?id=${encodeURIComponent(nextTrack.resolvedId || nextTrack.id || '')}&url=${encodeURIComponent(nextTrack.url || '')}&platform=${encodeURIComponent(nextTrack.platform || 'youtube')}&title=${encodeURIComponent(nextTrack.title || '')}&artist=${encodeURIComponent(nextTrack.artist || '')}&duration=${encodeURIComponent(nextTrack.duration || 0)}&thumbnail=${encodeURIComponent(nextTrack.thumbnail || '')}&q=${qFallback}&quality=${qQuality}`;
+        const fetchUrl = `http://127.0.0.1:${state.serverPort}/api/stream-info?id=${encodeURIComponent(nextTrack.resolvedId || nextTrack.id || '')}&url=${encodeURIComponent(nextTrack.url || '')}&platform=${encodeURIComponent(nextTrack.platform || 'youtube')}&title=${encodeURIComponent(nextTrack.title || '')}&artist=${encodeURIComponent(nextTrack.artist || '')}&duration=${encodeURIComponent(nextTrack.duration || 0)}&thumbnail=${encodeURIComponent(nextTrack.thumbnail || '')}&q=${qFallback}&quality=${qQuality}`;
         try {
           const res = await fetch(fetchUrl);
           const data = await res.json();
@@ -4620,7 +4638,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updatePlayPauseButton(false, true);
 
     if (!track.thumbnail && track.platform !== 'local') {
-      fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/track-cover?artist=${encodeURIComponent(track.artist || '')}&title=${encodeURIComponent(track.title || '')}`)
+      fetch(`http://127.0.0.1:${state.serverPort}/api/track-cover?artist=${encodeURIComponent(track.artist || '')}&title=${encodeURIComponent(track.title || '')}`)
         .then(res => res.ok ? res.json() : null)
         .then(data => {
           if (data && data.cover) {
@@ -4667,7 +4685,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       if (track.platform === 'local') {
-        const streamUrl = track.url || (track.path ? (track.path.startsWith('file:') ? track.path : 'file://' + encodeURI(track.path)) : `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/library-file?id=${encodeURIComponent(track.id)}`);
+        const streamUrl = track.url || (track.path ? (track.path.startsWith('file:') ? track.path : 'file://' + encodeURI(track.path)) : `http://127.0.0.1:${state.serverPort}/api/library-file?id=${encodeURIComponent(track.id)}`);
         if (currentToken !== state.loadToken) return;
         el.nativeAudio.preload = 'auto';
         el.nativeAudio.src = streamUrl;
@@ -4681,7 +4699,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const qQuality = encodeURIComponent(localStorage.getItem('riff_audio_quality') || 'medium');
       const qSearch = encodeURIComponent(track.searchQuery || ((track.artist ? track.artist + ' - ' : '') + track.title));
-      const streamInfoUrl = `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/stream-info?url=${encodeURIComponent(resolvedUrl || '')}&id=${encodeURIComponent(resolvedId || '')}&platform=${(state.platform === 'soundcloud' && (!track.url || !track.url.includes('youtube.com'))) ? 'soundcloud' : (track.platform || state.platform || 'ytmusic')}&title=${encodeURIComponent(track.title || '')}&artist=${encodeURIComponent(track.artist || '')}&duration=${encodeURIComponent(track.duration || 0)}&thumbnail=${encodeURIComponent(track.thumbnail || '')}&quality=${qQuality}&q=${qSearch}`;
+      const streamInfoUrl = `http://127.0.0.1:${state.serverPort}/api/stream-info?url=${encodeURIComponent(resolvedUrl || '')}&id=${encodeURIComponent(resolvedId || '')}&platform=${(state.platform === 'soundcloud' && (!track.url || !track.url.includes('youtube.com'))) ? 'soundcloud' : (track.platform || state.platform || 'ytmusic')}&title=${encodeURIComponent(track.title || '')}&artist=${encodeURIComponent(track.artist || '')}&duration=${encodeURIComponent(track.duration || 0)}&thumbnail=${encodeURIComponent(track.thumbnail || '')}&quality=${qQuality}&q=${qSearch}`;
       let res;
       try {
         res = await fetch(streamInfoUrl, { signal });
@@ -4941,7 +4959,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
       const duration = (state.currentTrack && state.currentTrack.duration) || (el.nativeAudio && el.nativeAudio.duration) || 0;
-      const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/lyrics-words?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&duration=${encodeURIComponent(duration || '')}`);
+      const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/lyrics-words?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&duration=${encodeURIComponent(duration || '')}`);
       const data = await res.json();
 
       if (token !== state.loadToken || !state.currentTrack || (((state.currentTrack.id) || `${artist}:${title}`) !== trackId)) return;
@@ -5125,7 +5143,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 4000);
         try {
-          const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/lyrics?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&online=${onlineParam}&source=${encodeURIComponent(source)}${durationParam}`, { signal: controller.signal });
+          const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/lyrics?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&online=${onlineParam}&source=${encodeURIComponent(source)}${durationParam}`, { signal: controller.signal });
           data = await res.json();
           if (data && data.success && data.lyrics) {
             lyricsSessionCache.set(lyricsCacheKey, data);
@@ -5817,7 +5835,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const texts = state.syncedLyrics.map(l => l.text);
     try {
-      const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/translate`, {
+      const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/translate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ texts, targetLang: lang })
@@ -6733,7 +6751,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!deviceName) {
       try {
-        const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/audio-output-info`);
+        const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/audio-output-info`);
         if (res.ok) {
           const info = await res.json();
           if (info && info.name && info.name !== 'Default output') {
@@ -7524,7 +7542,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
       const res = await fetch(
-        `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/save-custom-lyrics?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`,
+        `http://127.0.0.1:${state.serverPort}/api/save-custom-lyrics?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`,
                               {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -7725,7 +7743,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
       const res = await fetch(
-        `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/save-custom-lyrics?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`,
+        `http://127.0.0.1:${state.serverPort}/api/save-custom-lyrics?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -8321,7 +8339,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
           const qQuality = encodeURIComponent(localStorage.getItem('riff_audio_quality') || 'medium');
           const qSearch = encodeURIComponent(cur.searchQuery || ((cur.artist ? cur.artist + ' - ' : '') + (cur.title || '')));
-          const retryUrl = `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/stream-info?url=${encodeURIComponent(cur.url || '')}&id=${encodeURIComponent(cur.id || '')}&platform=${encodeURIComponent(cur.platform || state.platform)}&title=${encodeURIComponent(cur.title || '')}&artist=${encodeURIComponent(cur.artist || '')}&duration=${encodeURIComponent(cur.duration || 0)}&quality=${qQuality}&q=${qSearch}&forceYtDlp=1`;
+          const retryUrl = `http://127.0.0.1:${state.serverPort}/api/stream-info?url=${encodeURIComponent(cur.url || '')}&id=${encodeURIComponent(cur.id || '')}&platform=${encodeURIComponent(cur.platform || state.platform)}&title=${encodeURIComponent(cur.title || '')}&artist=${encodeURIComponent(cur.artist || '')}&duration=${encodeURIComponent(cur.duration || 0)}&quality=${qQuality}&q=${qSearch}&forceYtDlp=1`;
           const r = await fetch(retryUrl, { signal: retryController.signal });
           const d = await r.json();
           if (myToken !== state.loadToken) return;
@@ -8418,7 +8436,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (nextTrack && nextTrack.platform !== 'local') {
           const qUrl = nextTrack.url || '';
           const qId = nextTrack.id || '';
-          const qInfoUrl = `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/stream-info?url=${encodeURIComponent(qUrl)}&id=${encodeURIComponent(qId)}&platform=${nextTrack.platform || state.platform}&title=${encodeURIComponent(nextTrack.title || '')}&artist=${encodeURIComponent(nextTrack.artist || '')}&duration=${encodeURIComponent(nextTrack.duration || 0)}&thumbnail=${encodeURIComponent(nextTrack.thumbnail || '')}`;
+          const qInfoUrl = `http://127.0.0.1:${state.serverPort}/api/stream-info?url=${encodeURIComponent(qUrl)}&id=${encodeURIComponent(qId)}&platform=${nextTrack.platform || state.platform}&title=${encodeURIComponent(nextTrack.title || '')}&artist=${encodeURIComponent(nextTrack.artist || '')}&duration=${encodeURIComponent(nextTrack.duration || 0)}&thumbnail=${encodeURIComponent(nextTrack.thumbnail || '')}`;
           fetch(qInfoUrl).catch(() => {});
         }
       }
@@ -9062,7 +9080,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }
 
-      const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/artist?name=${encodeURIComponent(lookupName)}`);
+      const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/artist?name=${encodeURIComponent(lookupName)}`);
       const data = await res.json();
       if (state.searchToken !== token) return;
       if (!data.success || !data.artist || !data.artist.name) return;
@@ -9139,7 +9157,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const platform = state.platform || 'youtube';
     let picked = null;
     try {
-      const url = `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/search?q=${encodeURIComponent(query)}&platform=${platform}&limit=5`;
+      const url = `http://127.0.0.1:${state.serverPort}/api/search?q=${encodeURIComponent(query)}&platform=${platform}&limit=5`;
       const res = await fetch(url);
       const data = await res.json();
       const results = (data && Array.isArray(data.tracks)) ? data.tracks.slice(0, 5) : [];
@@ -9559,7 +9577,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       let albumYear = album.year || '';
 
       if (!tracks) {
-        const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/albums/tracks?id=${encodeURIComponent(album.id)}&title=${encodeURIComponent(album.title || '')}&artist=${encodeURIComponent(album.artist || '')}`);
+        const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/albums/tracks?id=${encodeURIComponent(album.id)}&title=${encodeURIComponent(album.title || '')}&artist=${encodeURIComponent(album.artist || '')}`);
         const data = await res.json();
         if (currentAlbumRunId !== runId) return;
 
@@ -9744,7 +9762,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!container) return;
 
     try {
-      const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/albums/search?q=${encodeURIComponent(query)}`);
+      const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/albums/search?q=${encodeURIComponent(query)}`);
       const data = await res.json();
       if (state.searchToken !== token) return;
       if (!data || !data.success || !Array.isArray(data.albums) || data.albums.length === 0) {
@@ -9951,10 +9969,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const cleanErr = String(errMessage || 'Unknown network or extractor error').trim();
     slot.innerHTML = `
       <div class="m3-search-error-box">
-        <div class="m3-search-error-title">${t('Error while fetching tracks. Please report this to GitHub WITH logs / diagnostics.')}</div>
-        <div class="m3-search-error-detail">${escapeHtml(t(cleanErr))}</div>
+        <div class="m3-search-error-title">Error while fetching tracks. Please report this to GitHub WITH logs / diagnostics.</div>
+        <div class="m3-search-error-detail">${escapeHtml(cleanErr)}</div>
         <div style="display:flex;gap:8px;margin-top:4px;">
-          <button type="button" class="btn-pill-primary" id="btn-copy-search-err" style="height:34px;padding:0 16px;font-size:12.5px;">${t('Copy error & diagnostics')}</button>
+          <button type="button" class="btn-pill-primary" id="btn-copy-search-err" style="height:34px;padding:0 16px;font-size:12.5px;">Copy error & diagnostics</button>
         </div>
       </div>
     `;
@@ -10207,7 +10225,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const quality = localStorage.getItem('riff_audio_quality') || 'medium';
       const qQuality = encodeURIComponent(quality);
       const qSearch = encodeURIComponent(track.searchQuery || ((track.artist ? track.artist + ' - ' : '') + (track.title || '')));
-      const u = `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/stream-info?url=${encodeURIComponent(track.url || '')}&id=${encodeURIComponent(track.id || '')}&platform=${track.platform || state.platform}&title=${encodeURIComponent(track.title || '')}&artist=${encodeURIComponent(track.artist || '')}&duration=${encodeURIComponent(track.duration || 0)}&thumbnail=${encodeURIComponent(track.thumbnail || '')}&quality=${qQuality}&q=${qSearch}`;
+      const u = `http://127.0.0.1:${state.serverPort}/api/stream-info?url=${encodeURIComponent(track.url || '')}&id=${encodeURIComponent(track.id || '')}&platform=${track.platform || state.platform}&title=${encodeURIComponent(track.title || '')}&artist=${encodeURIComponent(track.artist || '')}&duration=${encodeURIComponent(track.duration || 0)}&thumbnail=${encodeURIComponent(track.thumbnail || '')}&quality=${qQuality}&q=${qSearch}`;
       return fetch(u)
         .then((r) => r.json())
         .then((d) => {
@@ -10288,7 +10306,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         return;
       }
-      const searchUrl = `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/search?q=${encodeURIComponent(query)}&platform=${state.platform}&limit=12&offset=0`;
+      const searchUrl = `http://127.0.0.1:${state.serverPort}/api/search?q=${encodeURIComponent(query)}&platform=${state.platform}&limit=12&offset=0`;
       const res = await fetch(searchUrl);
       const data = await res.json();
       if (state.searchToken !== searchToken) return;
@@ -10336,7 +10354,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           if (state.searchHasMore && !state.searchLoadingMore && state.searchQuery) {
             state.searchLoadingMore = true;
             try {
-              const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/search?q=${encodeURIComponent(state.searchQuery)}&platform=${state.platform}&limit=12&offset=${state.searchOffset}`);
+              const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/search?q=${encodeURIComponent(state.searchQuery)}&platform=${state.platform}&limit=12&offset=${state.searchOffset}`);
               const moreData = await res.json();
               if (moreData && moreData.success && Array.isArray(moreData.tracks) && moreData.tracks.length > 0) {
                 const moreTracks = moreData.tracks;
@@ -11212,7 +11230,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           if (track.platform !== 'local' && !track._preloadedStreamUrl) {
             prefetchTimer = setTimeout(() => {
               const qFallback = encodeURIComponent(track.searchQuery || ((track.artist ? track.artist + ' - ' : '') + track.title));
-              const prefetchUrl = `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/stream-info?id=${encodeURIComponent(track.resolvedId || track.id || '')}&url=${encodeURIComponent(track.url || '')}&platform=${encodeURIComponent(track.platform || state.platform || 'youtube')}&title=${encodeURIComponent(track.title || '')}&artist=${encodeURIComponent(track.artist || '')}&duration=${encodeURIComponent(track.duration || 0)}&q=${qFallback}`;
+              const prefetchUrl = `http://127.0.0.1:${state.serverPort}/api/stream-info?id=${encodeURIComponent(track.resolvedId || track.id || '')}&url=${encodeURIComponent(track.url || '')}&platform=${encodeURIComponent(track.platform || state.platform || 'youtube')}&title=${encodeURIComponent(track.title || '')}&artist=${encodeURIComponent(track.artist || '')}&duration=${encodeURIComponent(track.duration || 0)}&q=${qFallback}`;
               fetch(prefetchUrl)
                 .then(r => r.json())
                 .then(data => {
@@ -11452,7 +11470,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         tracks.slice(0, 2).forEach(t => {
           if (t && t.platform !== 'local' && !t._preloadedStreamUrl) {
             const qFallback = encodeURIComponent(t.searchQuery || ((t.artist ? t.artist + ' - ' : '') + t.title));
-            const prefetchUrl = `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/stream-info?id=${encodeURIComponent(t.resolvedId || t.id || '')}&url=${encodeURIComponent(t.url || '')}&platform=${encodeURIComponent(t.platform || state.platform || 'youtube')}&title=${encodeURIComponent(t.title || '')}&artist=${encodeURIComponent(t.artist || '')}&duration=${encodeURIComponent(t.duration || 0)}&q=${qFallback}`;
+            const prefetchUrl = `http://127.0.0.1:${state.serverPort}/api/stream-info?id=${encodeURIComponent(t.resolvedId || t.id || '')}&url=${encodeURIComponent(t.url || '')}&platform=${encodeURIComponent(t.platform || state.platform || 'youtube')}&title=${encodeURIComponent(t.title || '')}&artist=${encodeURIComponent(t.artist || '')}&duration=${encodeURIComponent(t.duration || 0)}&q=${qFallback}`;
             fetch(prefetchUrl)
               .then(r => r.json())
               .then(data => {
@@ -11776,7 +11794,7 @@ function renderClickableArtists(container, rawArtist, hintTrack = null) {
   function fetchFavArtistMeta(artistObj, card) {
     if (!artistObj || !artistObj.name) return Promise.resolve();
     const lower = (artistObj.name || '').toLowerCase();
-    return fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/artist?name=${encodeURIComponent(artistObj.name)}`)
+    return fetch(`http://127.0.0.1:${state.serverPort}/api/artist?name=${encodeURIComponent(artistObj.name)}`)
       .then(r => r.json())
       .then(data => {
         if (data && data.success && data.artist) {
@@ -12078,7 +12096,7 @@ function renderClickableArtists(container, rawArtist, hintTrack = null) {
 
     try {
       const hint = (hintTrack && hintTrack.title) || (state.currentTrack && state.currentTrack.title) || '';
-      const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/artist?name=${encodeURIComponent(cleanName)}&hintTrack=${encodeURIComponent(hint)}`, { signal: bioController.signal });
+      const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/artist?name=${encodeURIComponent(cleanName)}&hintTrack=${encodeURIComponent(hint)}`, { signal: bioController.signal });
       clearTimeout(bioTimeout);
       const data = await res.json();
 
@@ -12901,7 +12919,7 @@ function renderClickableArtists(container, rawArtist, hintTrack = null) {
       const items = await window.electronAPI.importAudioFiles();
       if (!items || items.length === 0) return;
 
-      await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/library-add`, {
+      await fetch(`http://127.0.0.1:${state.serverPort}/api/library-add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items })
@@ -12915,7 +12933,7 @@ function renderClickableArtists(container, rawArtist, hintTrack = null) {
           const item = items[idx++];
           if (!item || !item.id) continue;
           await new Promise(resolve => {
-            const url = `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/library-file?id=${encodeURIComponent(item.id)}`;
+            const url = `http://127.0.0.1:${state.serverPort}/api/library-file?id=${encodeURIComponent(item.id)}`;
             const a = new Audio(url);
             a.preload = 'metadata';
             let done = false;
@@ -12929,7 +12947,7 @@ function renderClickableArtists(container, rawArtist, hintTrack = null) {
               const dur = Math.round(a.duration || 0);
               if (dur > 0) {
                 try {
-                  await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/library-update`, {
+                  await fetch(`http://127.0.0.1:${state.serverPort}/api/library-update`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id: item.id, duration: dur })
@@ -12977,25 +12995,42 @@ function renderClickableArtists(container, rawArtist, hintTrack = null) {
 
     function renderFallback() {
       container.innerHTML = '';
-      container.classList.remove('cover-single', 'cover-empty');
+      container.classList.remove('cover-single', 'cover-empty', 'cover-collage');
       const tracks = (playlist && playlist.tracks) ? playlist.tracks : [];
-      let firstThumb = null;
+      const thumbs = [];
+      const seen = new Set();
       for (const t of tracks) {
         const src = getTrackThumbUrl(t);
-        if (src) {
-          firstThumb = src;
-          break;
+        if (src && !seen.has(src)) {
+          seen.add(src);
+          thumbs.push(src);
+          if (thumbs.length >= 4) break;
         }
       }
 
-      if (firstThumb) {
+      if (thumbs.length >= 4) {
+        // Spotify-style 2x2 collage
+        container.classList.add('cover-collage');
+        const grid = document.createElement('div');
+        grid.className = 'playlist-collage-grid';
+        grid.style.cssText = 'display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; width: 100%; height: 100%; overflow: hidden;';
+        thumbs.slice(0, 4).forEach(src => {
+          const img = document.createElement('img');
+          img.src = src;
+          img.alt = '';
+          img.loading = 'lazy';
+          img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; display: block;';
+          grid.appendChild(img);
+        });
+        container.appendChild(grid);
+      } else if (thumbs.length >= 1) {
         container.classList.add('cover-single');
         const img = document.createElement('img');
         img.className = 'cover-single-img';
-        img.src = firstThumb;
+        img.src = thumbs[0];
         img.alt = '';
         img.loading = 'lazy';
-        img.style.objectFit = 'cover';
+        img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; display: block;';
         img.onerror = () => {
           container.classList.remove('cover-single');
           container.classList.add('cover-empty');
@@ -13021,7 +13056,7 @@ function renderClickableArtists(container, rawArtist, hintTrack = null) {
       img.src = playlist.cover.trim();
       img.alt = '';
       img.loading = 'lazy';
-      img.style.objectFit = 'cover';
+      img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; display: block;';
       img.onerror = () => {
         renderFallback();
       };
@@ -13032,7 +13067,72 @@ function renderClickableArtists(container, rawArtist, hintTrack = null) {
     renderFallback();
   }
 
+  function renderRailPlaylists() {
+    const container = document.getElementById('rail-playlists-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const playlists = state.playlists || [];
+    playlists.forEach(pl => {
+      const item = document.createElement('div');
+      item.className = 'rail-playlist-item';
+      item.dataset.playlistId = pl.id;
+      if (state.currentView === 'playlist-detail' && state.currentPlaylistId === pl.id) {
+        item.classList.add('active');
+      }
+
+      const thumbBox = document.createElement('div');
+      thumbBox.className = 'rail-playlist-thumb-box';
+      renderPlaylistCover(thumbBox, pl, 44);
+      item.appendChild(thumbBox);
+
+      const trackCount = (pl.tracks || []).length;
+      const tooltip = document.createElement('div');
+      tooltip.className = 'rail-playlist-tooltip';
+      const countLabel = trackCount === 1 ? '1 track' : `${trackCount} tracks`;
+      tooltip.innerHTML = `
+        <span class="rail-playlist-tooltip-name">${escapeHtml(pl.name || 'Untitled')}</span>
+        <span class="rail-playlist-tooltip-meta">${countLabel}</span>
+      `;
+      item.appendChild(tooltip);
+
+      item.addEventListener('click', () => {
+        openPlaylistDetail(pl.id);
+      });
+
+      item.addEventListener('contextmenu', async (e) => {
+        e.preventDefault();
+        if (window.electronAPI && window.electronAPI.showPlaylistContextMenu) {
+          const act = await window.electronAPI.showPlaylistContextMenu(pl.id);
+          if (act === 'export') {
+            exportSinglePlaylist(pl.id);
+          }
+        }
+      });
+
+      container.appendChild(item);
+    });
+
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'btn-rail-add-playlist';
+    addBtn.title = 'New playlist';
+    addBtn.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+    `;
+    addBtn.addEventListener('click', () => {
+      if (el.newPlaylistInput) el.newPlaylistInput.value = '';
+      if (el.createPlaylistModal) openModal(el.createPlaylistModal);
+      if (el.newPlaylistInput) el.newPlaylistInput.focus();
+    });
+    container.appendChild(addBtn);
+  }
+
   function renderPlaylistsList() {
+    renderRailPlaylists();
     if (!el.playlistsList) return;
     el.playlistsList.innerHTML = '';
     if (!state.playlists || state.playlists.length === 0) {
@@ -13840,6 +13940,9 @@ function renderClickableArtists(container, rawArtist, hintTrack = null) {
             if (n) n.classList.remove('active');
           });
         }
+        document.querySelectorAll('.rail-playlist-item').forEach(item => {
+          item.classList.toggle('active', viewName === 'playlist-detail' && item.dataset.playlistId === state.currentPlaylistId);
+        });
 
           if (viewName === 'discover') {
             if (el.viewDiscover) el.viewDiscover.classList.add('active');
@@ -16781,9 +16884,9 @@ function bindCoverHoldZoom(wrapEl) {
     { id: '19-horizon.svg', label: 'Horizon' }
   ];
   function resolveAppIconSrc(val) {
-    if (!val) return '/assets/02-editor.svg';
+    if (!val) return '../../assets/02-editor.svg';
     if (val.startsWith('file:') || val.startsWith('http') || val.startsWith('data:')) return val;
-    return '/assets/' + val.replace(/^.*assets\//, '');
+    return '../../assets/' + val.replace(/^.*assets\//, '');
   }
   function applyHomeAppIcon(val) {
     const chosen = val || localStorage.getItem('riff_app_icon') || '02-editor.svg';
@@ -18005,7 +18108,7 @@ function bindCoverHoldZoom(wrapEl) {
         async search(query, options) {
           const opts = options || {};
           const limit = Math.max(1, Math.min(parseInt(opts.limit, 10) || 10, 30));
-          const url = `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/search?q=${encodeURIComponent(query)}&platform=${encodeURIComponent(opts.platform || state.platform)}&limit=${limit}`;
+          const url = `http://127.0.0.1:${state.serverPort}/api/search?q=${encodeURIComponent(query)}&platform=${encodeURIComponent(opts.platform || state.platform)}&limit=${limit}`;
           const response = await fetch(url, { signal: opts.signal });
           if (!response.ok) throw new Error(`Search failed (${response.status})`);
           const data = await response.json();
@@ -18014,7 +18117,7 @@ function bindCoverHoldZoom(wrapEl) {
           return data.tracks;
         },
         async vibe(body) {
-          const response = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/vibe`, {
+          const response = await fetch(`http://127.0.0.1:${state.serverPort}/api/vibe`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body || {})
@@ -20201,7 +20304,7 @@ function bindCoverHoldZoom(wrapEl) {
 
   async function checkSpotifyAuthStatus() {
     try {
-      const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/spotify-status`, { headers: spotifyHeaders });
+      const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/spotify-status`, { headers: spotifyHeaders });
       const data = await res.json();
       spotifyConnected = !!data.connected;
       if (spLoginStatus) {
@@ -20361,7 +20464,7 @@ function bindCoverHoldZoom(wrapEl) {
       }
 
       try {
-        const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/spotify-auth-start?clientId=${encodeURIComponent(clientId)}`, { headers: spotifyHeaders });
+        const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/spotify-auth-start?clientId=${encodeURIComponent(clientId)}`, { headers: spotifyHeaders });
         const data = await res.json();
         if (!data.success) {
           if (spLoginStatus) {
@@ -20400,7 +20503,7 @@ function bindCoverHoldZoom(wrapEl) {
             return;
           }
           try {
-            const sRes = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/spotify-status`, { headers: spotifyHeaders });
+            const sRes = await fetch(`http://127.0.0.1:${state.serverPort}/api/spotify-status`, { headers: spotifyHeaders });
             const sData = await sRes.json();
             if (sData.connected) {
               clearInterval(spLoginPollTimer);
@@ -20686,7 +20789,7 @@ function bindCoverHoldZoom(wrapEl) {
     showImportSpinnerToast('Fetching Spotify library...');
 
     try {
-      const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/spotify-library?likes=${doLikes ? 1 : 0}&playlists=${doPlaylists ? 1 : 0}`, { headers: spotifyHeaders });
+      const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/spotify-library?likes=${doLikes ? 1 : 0}&playlists=${doPlaylists ? 1 : 0}`, { headers: spotifyHeaders });
       const data = await res.json();
       if (!data.success) {
         dismissImportSpinnerToast();
@@ -20743,7 +20846,7 @@ function bindCoverHoldZoom(wrapEl) {
     showImportSpinnerToast('Importing playlist...');
 
     try {
-      const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/spotify-import?url=${encodeURIComponent(url)}`, { headers: spotifyHeaders });
+      const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/spotify-import?url=${encodeURIComponent(url)}`, { headers: spotifyHeaders });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success || !Array.isArray(data.tracks) || data.tracks.length === 0) {
         dismissImportSpinnerToast();
@@ -21226,7 +21329,7 @@ function bindCoverHoldZoom(wrapEl) {
     showImportSpinnerToast('Importing playlist...');
 
     try {
-      const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/apple-import?url=${encodeURIComponent(url)}`);
+      const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/apple-import?url=${encodeURIComponent(url)}`);
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success || !Array.isArray(data.tracks) || data.tracks.length === 0) {
         dismissImportSpinnerToast();
@@ -21719,7 +21822,7 @@ function bindCoverHoldZoom(wrapEl) {
       if (hasBusy) beginBusy('import');
 
       try {
-        const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/yandex-import?url=${encodeURIComponent(url)}`);
+        const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/yandex-import?url=${encodeURIComponent(url)}`);
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.success || !Array.isArray(data.tracks) || data.tracks.length === 0) {
           dismissImportSpinnerToast();
@@ -21782,7 +21885,7 @@ function bindCoverHoldZoom(wrapEl) {
     const hasBusy = typeof beginBusy === 'function';
     if (hasBusy) beginBusy('import');
     try {
-      const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/playlist-import?url=${encodeURIComponent(url)}`);
+      const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/playlist-import?url=${encodeURIComponent(url)}`);
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data || !data.success || !Array.isArray(data.tracks) || data.tracks.length === 0) {
         dismissImportSpinnerToast();
@@ -22424,11 +22527,11 @@ function bindCoverHoldZoom(wrapEl) {
         if (track.platform === 'local' && track.path) {
           targetUrl = `file://${encodeURI(track.path)}`;
         } else if (track.id && state.serverPort) {
-          const checkRes = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/check-cache?id=${encodeURIComponent(track.id)}`).catch(() => null);
+          const checkRes = await fetch(`http://127.0.0.1:${state.serverPort}/api/check-cache?id=${encodeURIComponent(track.id)}`).catch(() => null);
           if (checkRes && checkRes.ok) {
             const checkData = await checkRes.json();
             if (checkData && checkData.cached) {
-              targetUrl = `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/local-track?id=${encodeURIComponent(track.id)}`;
+              targetUrl = `http://127.0.0.1:${state.serverPort}/api/local-track?id=${encodeURIComponent(track.id)}`;
             }
           }
         }
@@ -22601,7 +22704,7 @@ function bindCoverHoldZoom(wrapEl) {
     if (btnDeleteOfflineTrack) {
       btnDeleteOfflineTrack.classList.add('hidden');
       if (track && track.id) {
-        fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/check-cache?id=${encodeURIComponent(track.id)}`)
+        fetch(`http://127.0.0.1:${state.serverPort}/api/check-cache?id=${encodeURIComponent(track.id)}`)
           .then(r => r.json())
           .then(res => {
             if (res.cached) {
@@ -23012,7 +23115,7 @@ function bindCoverHoldZoom(wrapEl) {
             }
             const thumbUrl = getTrackThumbUrl(t) || t.thumbnail || t.cover || downloadBatch.cover || '';
             const trackAlbum = t.album || albumName || '';
-            const downloadUrl = `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/download?url=${encodeURIComponent(t.url || '')}&id=${encodeURIComponent(t.id || '')}&title=${encodeURIComponent(t.title || '')}&artist=${encodeURIComponent(t.artist || '')}&album=${encodeURIComponent(trackAlbum)}&format=${selectedFormat}&quality=${selectedQuality}&thumbnail=${encodeURIComponent(thumbUrl)}&customDir=${encodeURIComponent(customDir)}`;
+            const downloadUrl = `http://127.0.0.1:${state.serverPort}/api/download?url=${encodeURIComponent(t.url || '')}&id=${encodeURIComponent(t.id || '')}&title=${encodeURIComponent(t.title || '')}&artist=${encodeURIComponent(t.artist || '')}&album=${encodeURIComponent(trackAlbum)}&format=${selectedFormat}&quality=${selectedQuality}&thumbnail=${encodeURIComponent(thumbUrl)}&customDir=${encodeURIComponent(customDir)}`;
             const res = await fetch(downloadUrl);
             const text = await res.text();
             let data;
@@ -23072,21 +23175,21 @@ function bindCoverHoldZoom(wrapEl) {
         }
 
         if (!audioSourceUrl && t.platform === 'local' && t.id) {
-          audioSourceUrl = `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/library-file?id=${encodeURIComponent(t.id)}`;
+          audioSourceUrl = `http://127.0.0.1:${state.serverPort}/api/library-file?id=${encodeURIComponent(t.id)}`;
         }
 
         if (!audioSourceUrl && t.id) {
           try {
-            const checkRes = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/check-cache?id=${encodeURIComponent(t.id)}`, { signal: downloadAbort.signal });
+            const checkRes = await fetch(`http://127.0.0.1:${state.serverPort}/api/check-cache?id=${encodeURIComponent(t.id)}`, { signal: downloadAbort.signal });
             const checkData = await checkRes.json();
             if (checkData && checkData.cached) {
-              audioSourceUrl = `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/local-track?id=${encodeURIComponent(t.id)}`;
+              audioSourceUrl = `http://127.0.0.1:${state.serverPort}/api/local-track?id=${encodeURIComponent(t.id)}`;
             }
           } catch (_) {}
         }
 
         if (!audioSourceUrl) {
-          const streamInfoUrl = `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/stream-info?url=${encodeURIComponent(t.url || '')}&id=${encodeURIComponent(t.id || '')}&platform=${t.platform || 'ytmusic'}&title=${encodeURIComponent(t.title || '')}&artist=${encodeURIComponent(t.artist || '')}&duration=${encodeURIComponent(t.duration || 0)}`;
+          const streamInfoUrl = `http://127.0.0.1:${state.serverPort}/api/stream-info?url=${encodeURIComponent(t.url || '')}&id=${encodeURIComponent(t.id || '')}&platform=${t.platform || 'ytmusic'}&title=${encodeURIComponent(t.title || '')}&artist=${encodeURIComponent(t.artist || '')}&duration=${encodeURIComponent(t.duration || 0)}`;
           const streamRes = await fetch(streamInfoUrl, { signal: downloadAbort.signal });
           const streamData = await streamRes.json();
           if (!streamData || !streamData.success || (!streamData.streamUrl && !streamData.proxyUrl)) {
@@ -23098,7 +23201,7 @@ function bindCoverHoldZoom(wrapEl) {
         let fetchUrl = audioSourceUrl;
         const isLoopback = fetchUrl.startsWith('http://127.0.0.1') || fetchUrl.startsWith('http://localhost');
         if (!isLoopback) {
-          fetchUrl = `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/audio-proxy?url=${encodeURIComponent(audioSourceUrl)}`;
+          fetchUrl = `http://127.0.0.1:${state.serverPort}/api/audio-proxy?url=${encodeURIComponent(audioSourceUrl)}`;
         }
 
         const resFile = await fetch(fetchUrl, { signal: downloadAbort.signal });
@@ -23139,7 +23242,7 @@ function bindCoverHoldZoom(wrapEl) {
 
         const customDir = state.downloadDir || localStorage.getItem('riff_download_dir') || '';
         const thumbUrl = getTrackThumbUrl(t) || t.thumbnail || t.cover || '';
-        const encodeUrl = `${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/encode?title=${encodeURIComponent(t.title || 'untitled')}&artist=${encodeURIComponent(t.artist || 'unknown artist')}&format=${selectedFormat}&quality=${selectedQuality}&thumbnail=${encodeURIComponent(thumbUrl)}&customDir=${encodeURIComponent(customDir)}`;
+        const encodeUrl = `http://127.0.0.1:${state.serverPort}/api/encode?title=${encodeURIComponent(t.title || 'untitled')}&artist=${encodeURIComponent(t.artist || 'unknown artist')}&format=${selectedFormat}&quality=${selectedQuality}&thumbnail=${encodeURIComponent(thumbUrl)}&customDir=${encodeURIComponent(customDir)}`;
         const resEncode = await fetch(encodeUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'audio/wav' },
@@ -23264,7 +23367,7 @@ function bindCoverHoldZoom(wrapEl) {
     analysisCache.set(cleanId, analysis);
     try {
       localStorage.setItem(`riff_audio_analysis_${cleanId}`, JSON.stringify(analysis));
-      fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/track-analysis`, {
+      fetch(`http://127.0.0.1:${state.serverPort}/api/track-analysis`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: cleanId, analysis })
@@ -23921,7 +24024,7 @@ function bindCoverHoldZoom(wrapEl) {
     isExtendingMyWave = true;
     try {
       const profile = await computeTasteProfile();
-      const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/vibe`, {
+      const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/vibe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -24658,7 +24761,7 @@ function bindCoverHoldZoom(wrapEl) {
       }
       let uniqueTracks = [];
       try {
-        const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/vibe`, {
+        const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/vibe`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(vibePayload)
@@ -24693,7 +24796,7 @@ function bindCoverHoldZoom(wrapEl) {
 
       if (uniqueTracks.length < 5) {
         try {
-          const hotRes = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/hot?limit=12`);
+          const hotRes = await fetch(`http://127.0.0.1:${state.serverPort}/api/hot?limit=12`);
           const hotData = await hotRes.json();
           if (hotData && hotData.success && Array.isArray(hotData.tracks) && hotData.tracks.length > 0) {
             uniqueTracks = hotData.tracks.filter(t => !isTrackBlocked(t) && !isArtistBlocked(t.artist));
@@ -25240,7 +25343,7 @@ function bindCoverHoldZoom(wrapEl) {
         };
 
         try {
-          const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/vibe`, {
+          const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/vibe`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -25758,7 +25861,7 @@ function bindCoverHoldZoom(wrapEl) {
     const elSize = document.getElementById('offline-library-size');
     if (!elSize) return;
     try {
-      const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/offline-library`);
+      const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/offline-library`);
       const data = await res.json();
       if (data && data.success) {
         elSize.textContent = `${data.count} track${data.count === 1 ? '' : 's'} (${formatBytes(data.totalBytes)})`;
@@ -25906,7 +26009,7 @@ function bindCoverHoldZoom(wrapEl) {
     btnDeleteOfflineTrack.addEventListener('click', async () => {
       if (!trackToDownload || !trackToDownload.id) return;
       try {
-        await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/offline-delete?id=${encodeURIComponent(trackToDownload.id)}`, { method: 'POST' });
+        await fetch(`http://127.0.0.1:${state.serverPort}/api/offline-delete?id=${encodeURIComponent(trackToDownload.id)}`, { method: 'POST' });
         showToast('Track removed from offline cache');
         updateOfflineStorageUI();
         if (el.downloadModal) closeModal(el.downloadModal);
@@ -25934,7 +26037,7 @@ function bindCoverHoldZoom(wrapEl) {
   if (btnConfirmClearOffline && clearOfflineModal) {
     btnConfirmClearOffline.addEventListener('click', async () => {
       try {
-        await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/clear-offline-library`, { method: 'POST' });
+        await fetch(`http://127.0.0.1:${state.serverPort}/api/clear-offline-library`, { method: 'POST' });
         showToast('Offline library cleared');
         updateOfflineStorageUI();
       } catch (e) {
@@ -26100,7 +26203,7 @@ function bindCoverHoldZoom(wrapEl) {
     toolsPollInterval = setInterval(async () => {
       if (!state.serverPort) return;
       try {
-        const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/tools/status`);
+        const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/tools/status`);
         const status = await res.json();
         updateToolsUI(status);
         const isReady = Boolean(status.ytdlp !== undefined ? status.ytdlp : status.ytDlp) && Boolean(status.ffmpeg || status.ffmpegOptional);
@@ -26138,9 +26241,9 @@ function bindCoverHoldZoom(wrapEl) {
     if (btnRetry) btnRetry.style.display = 'none';
     if (errEl) errEl.style.display = 'none';
 
-    if (state.serverPort || !window.electronAPI) {
-      fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/tools/install`, { method: 'POST' }).catch(() => {
-        fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/tools-install`, { method: 'POST' }).catch(() => {});
+    if (state.serverPort) {
+      fetch(`http://127.0.0.1:${state.serverPort}/api/tools/install`, { method: 'POST' }).catch(() => {
+        fetch(`http://127.0.0.1:${state.serverPort}/api/tools-install`, { method: 'POST' }).catch(() => {});
       });
     }
     pollToolsStatus();
@@ -26149,7 +26252,7 @@ function bindCoverHoldZoom(wrapEl) {
   async function checkToolsStatus(promptUser = false) {
     if (!state.serverPort) return;
     try {
-      const res = await fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/tools/status`);
+      const res = await fetch(`http://127.0.0.1:${state.serverPort}/api/tools/status`);
       const status = await res.json();
       updateToolsUI(status);
 
@@ -27112,4 +27215,3 @@ document.addEventListener('DOMContentLoaded', () => {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { parseLrc, getTrackLyricsOffset, setTrackLyricsOffset };
 }
-

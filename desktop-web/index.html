@@ -116,7 +116,7 @@
 
         <button class="nav-item active" data-view="discover" id="nav-discover" title="Home">
           <div class="nav-indicator">
-            <img id="nav-home-app-icon" class="nav-home-app-icon" src="/assets/02-editor.svg" alt="Home" draggable="false" />
+            <img id="nav-home-app-icon" class="nav-home-app-icon" src="../../assets/02-editor.svg" alt="Home" draggable="false" />
           </div>
         </button>
 
@@ -172,11 +172,13 @@
               <line x1="17" y1="16" x2="23" y2="16"></line>
             </svg>
           </button>
-          <button class="rail-icon-btn" id="btn-toggle-playlists-drawer" title="Playlists">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15V6M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM12 12H3M16 6H3M12 18H3"></path>
-            </svg>
-          </button>
+        </div>
+
+        <div class="rail-divider" style="margin: 4px 0 6px 0;"></div>
+
+        <!-- Rail Playlists Squares (Spotify style collage) -->
+        <div class="rail-playlists-scroll" id="rail-playlists-scroll">
+          <div class="rail-playlists-container" id="rail-playlists-container"></div>
         </div>
 
         <div class="sidebar-bottom-spacer"></div>
@@ -267,7 +269,7 @@
             </div>
             <div class="home-hero-dots" id="home-hero-dots"></div>
           </div>
-          <div class="sp-home" id="sp-home"><div class="spotify-promo" id="spotify-promo" hidden><img class="spotify-promo-art" src="/assets/spotify-to-raser.png" alt="" draggable="false"><div class="spotify-promo-text"><span class="spotify-promo-title">Import tracks directly from Spotify to Raser!</span><span class="spotify-promo-sub">Bring your playlists over in a few clicks</span></div><button type="button" class="btn-pill-primary spotify-promo-btn" id="btn-spotify-promo-import">Import</button><button type="button" class="btn-icon-pill spotify-promo-close" id="btn-spotify-promo-close" aria-label="Dismiss"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div><section class="sp-section" id="sp-made-sec"><h2><svg class="sp-ico" viewBox="0 0 24 24"><path d="M4 10a1 1 0 0 1 1 1v2a1 1 0 0 1-2 0v-2a1 1 0 0 1 1-1zm4-4a1 1 0 0 1 1 1v10a1 1 0 1 1-2 0V7a1 1 0 0 1 1-1zm4-4a1 1 0 0 1 1 1v18a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1zm4 4a1 1 0 0 1 1 1v10a1 1 0 1 1-2 0V7a1 1 0 0 1 1-1zm4 4a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0v-2a1 1 0 0 1 1-1z"/></svg><span data-i18n>For you</span><button class="btn-icon-pill" id="btn-regen-mixes" aria-label="Regenerate mixes" title="Regenerate mixes" style="margin-left: auto; width: 32px; height: 32px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg></button></h2><div class="sp-row" id="sp-made"></div></section><section class="sp-section" id="sp-quick-sec"><h2><svg class="sp-ico" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg><span data-i18n>Home</span></h2><div class="sp-quick" id="sp-quick"></div></section><section class="sp-section" id="sp-trend-sec"><h2><svg class="sp-ico" viewBox="0 0 24 24"><path d="M12 2c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9z"/></svg><span data-i18n>Trending now</span></h2><div class="sp-row" id="sp-trend"></div></section><section class="sp-section" id="sp-artists-sec"><h2><svg class="sp-ico" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg><span data-i18n>Favorite artists</span></h2><div class="sp-row fav-artists-row" id="sp-artists"></div></section></div>
+          <div class="sp-home" id="sp-home"><div class="spotify-promo" id="spotify-promo" hidden><img class="spotify-promo-art" src="../../assets/spotify-to-raser.png" alt="" draggable="false"><div class="spotify-promo-text"><span class="spotify-promo-title">Import tracks directly from Spotify to Raser!</span><span class="spotify-promo-sub">Bring your playlists over in a few clicks</span></div><button type="button" class="btn-pill-primary spotify-promo-btn" id="btn-spotify-promo-import">Import</button><button type="button" class="btn-icon-pill spotify-promo-close" id="btn-spotify-promo-close" aria-label="Dismiss"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div><section class="sp-section" id="sp-made-sec"><h2><svg class="sp-ico" viewBox="0 0 24 24"><path d="M4 10a1 1 0 0 1 1 1v2a1 1 0 0 1-2 0v-2a1 1 0 0 1 1-1zm4-4a1 1 0 0 1 1 1v10a1 1 0 1 1-2 0V7a1 1 0 0 1 1-1zm4-4a1 1 0 0 1 1 1v18a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1zm4 4a1 1 0 0 1 1 1v10a1 1 0 1 1-2 0V7a1 1 0 0 1 1-1zm4 4a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0v-2a1 1 0 0 1 1-1z"/></svg><span data-i18n>For you</span><button class="btn-icon-pill" id="btn-regen-mixes" aria-label="Regenerate mixes" title="Regenerate mixes" style="margin-left: auto; width: 32px; height: 32px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg></button></h2><div class="sp-row" id="sp-made"></div></section><section class="sp-section" id="sp-quick-sec"><h2><svg class="sp-ico" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg><span data-i18n>Home</span></h2><div class="sp-quick" id="sp-quick"></div></section><section class="sp-section" id="sp-trend-sec"><h2><svg class="sp-ico" viewBox="0 0 24 24"><path d="M12 2c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9z"/></svg><span data-i18n>Trending now</span></h2><div class="sp-row" id="sp-trend"></div></section><section class="sp-section" id="sp-artists-sec"><h2><svg class="sp-ico" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg><span data-i18n>Favorite artists</span></h2><div class="sp-row fav-artists-row" id="sp-artists"></div></section></div>
           </div>
         </div>
 
@@ -1663,7 +1665,7 @@
               <div class="setting-item-top" style="align-items: center; justify-content: space-between;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                   <span style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                    <img src="/assets/deezer-icon.png" alt="" width="20" height="20" style="object-fit: contain;">
+                    <img src="../../assets/deezer-icon.png" alt="" width="20" height="20" style="object-fit: contain;">
                   </span>
                   <div style="display: flex; flex-direction: column; min-width: 0;">
                     <span class="setting-name" data-i18n-fixed>Deezer</span>
@@ -2142,7 +2144,7 @@
                         <span>Spotify</span>
                       </button>
                       <button type="button" class="theme-mode-btn" id="home-layout-raser" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-                        <img src="/assets/icon.png" width="16" height="16" style="border-radius: 4px; object-fit: contain;" alt="">
+                        <img src="../../assets/icon.png" width="16" height="16" style="border-radius: 4px; object-fit: contain;" alt="">
                         <span>Raser</span>
                       </button>
                     </div>
@@ -2204,7 +2206,7 @@
               <div class="setting-item-top" style="align-items: center; justify-content: space-between;">
                 <div style="display: flex; align-items: center; gap: 12px;">
                   <div style="width: 32px; height: 32px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center;">
-                    <img src="/assets/icon.png" alt="Raser" style="width: 32px; height: 32px; object-fit: cover;">
+                    <img src="../../assets/icon.png" alt="Raser" style="width: 32px; height: 32px; object-fit: cover;">
                   </div>
                   <div style="display: flex; flex-direction: column;">
                     <span class="setting-name">Raser</span>
@@ -3918,7 +3920,7 @@
     </div>
   </div>
 
-  <script src="/assets/hls.min.js"></script>
+  <script src="../../assets/hls.min.js"></script>
   <script src="audio.js"></script>
   <script src="shapes.js"></script>
   <script src="lyrics-rtl.js"></script>
@@ -3927,4 +3929,3 @@
   <script src="app.js"></script>
 </body>
 </html>
-

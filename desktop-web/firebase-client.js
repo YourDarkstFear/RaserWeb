@@ -126,7 +126,17 @@
     return (I18N_TEXTS[lang] && I18N_TEXTS[lang][key]) || I18N_TEXTS.en[key] || key;
   }
 
-  // Safe localStorage helper
+  // Safe localStorage helper with automatic change detection
+  const origSetItem = localStorage.setItem.bind(localStorage);
+  localStorage.setItem = function(key, val) {
+    origSetItem(key, val);
+    if (!isSyncing && typeof key === 'string' && (key.startsWith('riff_') || key.startsWith('devsize_') || key.startsWith('raser_'))) {
+      if (!key.endsWith('_cache') && !key.startsWith('riff_i18n_')) {
+        triggerAutoSync();
+      }
+    }
+  };
+
   function getLocalJSON(key, defaultVal) {
     try {
       const v = localStorage.getItem(key);
@@ -138,7 +148,7 @@
 
   function setLocalJSON(key, val) {
     try {
-      localStorage.setItem(key, JSON.stringify(val));
+      origSetItem(key, JSON.stringify(val));
     } catch (_) {}
   }
 
@@ -204,6 +214,44 @@
     }
   }
 
+  // Comprehensive Local Settings Extraction & Restoration
+  function getAllLocalSettings() {
+    const settings = {};
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        if (key === 'devsize_playlists' || key === 'devsize_history' || key === 'devsize_favorites' || key === 'raser_desktop_user') continue;
+        if (key.endsWith('_cache') || key.startsWith('riff_i18n_')) continue;
+        if (key.startsWith('riff_') || key.startsWith('devsize_') || key.startsWith('raser_')) {
+          const val = localStorage.getItem(key);
+          if (val !== null && val.length < 50000) {
+            settings[key] = val;
+          }
+        }
+      }
+    } catch (_) {}
+    return settings;
+  }
+
+  function applyCloudSettings(cloudSettings) {
+    if (!cloudSettings || typeof cloudSettings !== 'object') return false;
+    let changed = false;
+    try {
+      for (const [key, val] of Object.entries(cloudSettings)) {
+        if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
+          const current = localStorage.getItem(key);
+          const strVal = String(val);
+          if (current !== strVal) {
+            origSetItem(key, strVal);
+            changed = true;
+          }
+        }
+      }
+    } catch (_) {}
+    return changed;
+  }
+
   // Auto Initial Sync when user signs in
   async function handleInitialSync(user) {
     if (!db || !user) return;
@@ -215,14 +263,11 @@
 
       const localPlaylists = getLocalJSON('devsize_playlists', []);
       const localHistory = getLocalJSON('devsize_history', []);
-      const localSettings = {
-        volume: localStorage.getItem('riff_volume') || localStorage.getItem('raser_volume') || '0.5',
-        repeat: localStorage.getItem('riff_repeat') || 'false',
-        shuffle: localStorage.getItem('riff_shuffle') || 'false'
-      };
+      const localFavorites = getLocalJSON('devsize_favorites', []);
+      const localSettings = getAllLocalSettings();
 
       if (!doc.exists) {
-        // First time user or cloud is empty: Automatically push all local data (359 songs) to Firestore!
+        // First time user or cloud is empty: Automatically push all local data (playlists, history, favorites, settings)
         const initialData = {
           profile: {
             uid: user.uid,
@@ -235,6 +280,7 @@
           library: {
             playlists: localPlaylists,
             history: localHistory.slice(0, 100),
+            favorites: localFavorites,
             settings: localSettings,
             updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
           }
@@ -248,30 +294,56 @@
         const cloudLib = cloudData.library || {};
         const cloudPlaylists = cloudLib.playlists || [];
         const cloudHistory = cloudLib.history || [];
+        const cloudFavorites = cloudLib.favorites || [];
+        const cloudSettings = cloudLib.settings || {};
 
-        // If cloud was empty but local has items, upload local items
+        let shouldUpload = false;
+
+        // Playlists
         if (cloudPlaylists.length === 0 && localPlaylists.length > 0) {
+          shouldUpload = true;
+        } else if (cloudPlaylists.length > 0) {
+          setLocalJSON('devsize_playlists', cloudPlaylists);
+        }
+
+        // Favorites
+        if (cloudFavorites.length === 0 && localFavorites.length > 0) {
+          shouldUpload = true;
+        } else if (cloudFavorites.length > 0) {
+          setLocalJSON('devsize_favorites', cloudFavorites);
+        }
+
+        // History
+        if (cloudHistory.length === 0 && localHistory.length > 0) {
+          shouldUpload = true;
+        } else if (cloudHistory.length > 0) {
+          setLocalJSON('devsize_history', cloudHistory);
+        }
+
+        // Settings
+        if (Object.keys(cloudSettings).length === 0 && Object.keys(localSettings).length > 0) {
+          shouldUpload = true;
+        } else if (Object.keys(cloudSettings).length > 0) {
+          const applied = applyCloudSettings(cloudSettings);
+          if (applied) {
+            window.dispatchEvent(new CustomEvent('raser:cloud-settings-updated', { detail: cloudSettings }));
+          }
+        }
+
+        if (shouldUpload) {
           await userDocRef.set({
             library: {
-              playlists: localPlaylists,
-              history: localHistory.slice(0, 100),
-              settings: localSettings,
+              playlists: getLocalJSON('devsize_playlists', []),
+              history: getLocalJSON('devsize_history', []).slice(0, 100),
+              favorites: getLocalJSON('devsize_favorites', []),
+              settings: getAllLocalSettings(),
               updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
             }
           }, { merge: true });
-          setSyncStatus('synced');
-        } else if (cloudPlaylists.length > 0) {
-          // Cloud has items: sync down to local storage
-          setLocalJSON('devsize_playlists', cloudPlaylists);
-          if (cloudHistory.length > 0) {
-            setLocalJSON('devsize_history', cloudHistory);
-          }
-          // Notify app renderer to reload playlists/library views
-          window.dispatchEvent(new CustomEvent('raser:cloud-library-updated'));
-          setSyncStatus('synced');
-        } else {
-          setSyncStatus('synced');
         }
+
+        window.dispatchEvent(new CustomEvent('raser:cloud-library-updated'));
+        setSyncStatus('synced');
       }
     } catch (err) {
       console.warn('[RaserFirebase] Initial sync error (Check Firestore status):', err);
@@ -290,16 +362,42 @@
         if (!doc.exists || isSyncing) return;
         const data = doc.data();
         if (data && data.library) {
-          const cloudPlaylists = data.library.playlists;
-          if (Array.isArray(cloudPlaylists)) {
+          const cloudLib = data.library;
+          let libChanged = false;
+
+          // Playlists
+          if (Array.isArray(cloudLib.playlists)) {
             const currentLocal = JSON.stringify(getLocalJSON('devsize_playlists', []));
-            const newCloud = JSON.stringify(cloudPlaylists);
+            const newCloud = JSON.stringify(cloudLib.playlists);
             if (currentLocal !== newCloud) {
-              setLocalJSON('devsize_playlists', cloudPlaylists);
-              window.dispatchEvent(new CustomEvent('raser:cloud-library-updated'));
-              updateStatsUI();
+              setLocalJSON('devsize_playlists', cloudLib.playlists);
+              libChanged = true;
             }
           }
+
+          // Favorites
+          if (Array.isArray(cloudLib.favorites)) {
+            const currentFav = JSON.stringify(getLocalJSON('devsize_favorites', []));
+            const newFav = JSON.stringify(cloudLib.favorites);
+            if (currentFav !== newFav) {
+              setLocalJSON('devsize_favorites', cloudLib.favorites);
+              libChanged = true;
+            }
+          }
+
+          if (libChanged) {
+            window.dispatchEvent(new CustomEvent('raser:cloud-library-updated'));
+          }
+
+          // Settings
+          if (cloudLib.settings && typeof cloudLib.settings === 'object') {
+            const applied = applyCloudSettings(cloudLib.settings);
+            if (applied) {
+              window.dispatchEvent(new CustomEvent('raser:cloud-settings-updated', { detail: cloudLib.settings }));
+            }
+          }
+
+          updateStatsUI();
         }
       }, (err) => {
         console.warn('[RaserFirebase] Snapshot error:', err);
@@ -307,7 +405,7 @@
     } catch (_) {}
   }
 
-  // Auto debounced sync whenever playlists/favorites change locally
+  // Auto debounced sync whenever playlists/favorites/settings change locally
   function triggerAutoSync() {
     if (!currentUser || !db) return;
     setSyncStatus('syncing');
@@ -318,12 +416,16 @@
       try {
         const localPlaylists = getLocalJSON('devsize_playlists', []);
         const localHistory = getLocalJSON('devsize_history', []);
+        const localFavorites = getLocalJSON('devsize_favorites', []);
+        const localSettings = getAllLocalSettings();
 
         const userDocRef = db.collection('users').doc(currentUser.uid);
         await userDocRef.set({
           library: {
             playlists: localPlaylists,
             history: localHistory.slice(0, 100),
+            favorites: localFavorites,
+            settings: localSettings,
             updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
           }
         }, { merge: true });
@@ -339,16 +441,22 @@
     }, SYNC_DEBOUNCE_MS);
   }
 
-  // Watch for local changes in playlists
+  // Watch for local changes in playlists, favorites, and settings
   function setupStorageListener() {
     window.addEventListener('storage', (e) => {
-      if (e.key === 'devsize_playlists' || e.key === 'devsize_history') {
+      if (!e.key) return;
+      if (e.key === 'devsize_playlists' || e.key === 'devsize_history' || e.key === 'devsize_favorites') {
+        triggerAutoSync();
+      } else if (e.key.startsWith('riff_') || e.key.startsWith('devsize_') || e.key.startsWith('raser_')) {
         triggerAutoSync();
       }
     });
 
-    // Custom events dispatched by app.js when mutating playlists
+    // Custom events dispatched by app.js when mutating playlists or settings
     window.addEventListener('raser:playlist-changed', () => {
+      triggerAutoSync();
+    });
+    window.addEventListener('raser:setting-changed', () => {
       triggerAutoSync();
     });
   }

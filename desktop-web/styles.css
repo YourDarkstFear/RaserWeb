@@ -233,7 +233,7 @@ button:not(.btn-play-pause):not(.nav-item):not(.settings-nav-btn):active, .chip-
   transition: height 220ms cubic-bezier(0.2, 0, 0, 1), opacity 180ms ease;
 }
 .titlebar .app-logo { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto; cursor: pointer; -webkit-app-region: no-drag; }
-.titlebar-raser-icon, .titlebar-riff-icon { width: 20px; height: 20px; display: block; background-color: var(--md-sys-color-primary); -webkit-mask: url('/assets/raser.svg') no-repeat center / contain; mask: url('/assets/raser.svg') no-repeat center / contain; }
+.titlebar-raser-icon, .titlebar-riff-icon { width: 20px; height: 20px; display: block; background-color: var(--md-sys-color-primary); -webkit-mask: url('../../assets/raser.svg') no-repeat center / contain; mask: url('../../assets/raser.svg') no-repeat center / contain; }
 body.hide-titlebar::before {
   content: "";
   position: fixed;
@@ -806,6 +806,152 @@ body.perf .app-icon-option-box {
 .rail-icon-btn:hover {
   background: var(--md-sys-color-surface-container-high);
   color: var(--md-sys-color-on-surface);
+}
+
+/* Sidebar Nav Playlists Squares (Material You Spotify-Style Collage) */
+.rail-playlists-scroll {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-height: 240px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -webkit-app-region: no-drag !important;
+  pointer-events: auto !important;
+  margin: 2px 0;
+}
+.rail-playlists-scroll::-webkit-scrollbar {
+  display: none;
+}
+.rail-playlists-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 2px 0;
+}
+.rail-playlist-item {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: var(--md-shape-corner-m, 12px);
+  background: var(--md-sys-color-surface-container-high);
+  border: 1px solid var(--md-sys-color-outline-variant, rgba(255, 255, 255, 0.08));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  overflow: visible;
+  transition: transform 0.18s cubic-bezier(0.2, 0, 0, 1), border-color 0.18s ease, box-shadow 0.18s ease;
+  user-select: none;
+  -webkit-app-region: no-drag !important;
+  pointer-events: auto !important;
+  padding: 0;
+  box-sizing: border-box;
+}
+.rail-playlist-item:hover {
+  transform: scale(1.08);
+  border-color: var(--md-sys-color-primary);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+}
+.rail-playlist-item.active {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+  border-color: var(--md-sys-color-primary);
+}
+.rail-playlist-thumb-box {
+  width: 100%;
+  height: 100%;
+  border-radius: calc(var(--md-shape-corner-m, 12px) - 1px);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--md-sys-color-surface-container-high);
+}
+.rail-playlist-thumb-box .playlist-cover-art,
+.rail-playlist-thumb-box .playlist-collage-grid {
+  width: 100%;
+  height: 100%;
+}
+.playlist-collage-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.playlist-collage-grid img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.rail-playlist-tooltip {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-6px);
+  background: var(--md-sys-color-surface-container-highest, #28292c);
+  color: var(--md-sys-color-on-surface, #e6e6e8);
+  border: 1px solid var(--md-sys-color-outline-variant, rgba(255, 255, 255, 0.12));
+  padding: 6px 12px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
+  z-index: 999999;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rail-playlist-tooltip-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface, #ffffff);
+}
+.rail-playlist-tooltip-meta {
+  font-size: 11px;
+  color: var(--md-sys-color-on-surface-variant, #b0b0b0);
+}
+.rail-playlist-item:hover .rail-playlist-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-50%) translateX(0);
+}
+.btn-rail-add-playlist {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 50%;
+  border: 1.5px dashed var(--md-sys-color-outline-variant, rgba(255,255,255,0.2));
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  margin-top: 2px;
+  -webkit-app-region: no-drag !important;
+  pointer-events: auto !important;
+}
+.btn-rail-add-playlist:hover {
+  border-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-primary);
+  background: var(--md-sys-color-surface-container-high);
+  transform: scale(1.08);
 }
 
 .rail-drawer {
@@ -5903,6 +6049,7 @@ svg.cache-snake-ring {
   .nav-active-indicator,
   .rail-divider,
   .rail-action-group,
+  .rail-playlists-scroll,
   #rail-drawer {
     display: none !important;
   }
@@ -9445,8 +9592,8 @@ body.hide-explicit-badges .explicit-badge {
   width: 46px;
   height: 46px;
   background-color: #36284E;
-  -webkit-mask: url('/assets/raser.svg') no-repeat center / contain;
-  mask: url('/assets/raser.svg') no-repeat center / contain;
+  -webkit-mask: url('../../assets/raser.svg') no-repeat center / contain;
+  mask: url('../../assets/raser.svg') no-repeat center / contain;
   transform: rotate(-45deg);
 }
 .raser-hero-floats, .riff-hero-floats {
@@ -9458,8 +9605,8 @@ body.hide-explicit-badges .explicit-badge {
 .raser-float-logo, .riff-float-logo {
   position: absolute;
   background-color: #492E7D;
-  -webkit-mask: url('/assets/raser.svg') no-repeat center / contain;
-  mask: url('/assets/raser.svg') no-repeat center / contain;
+  -webkit-mask: url('../../assets/raser.svg') no-repeat center / contain;
+  mask: url('../../assets/raser.svg') no-repeat center / contain;
   opacity: 0.85;
 }
 .raser-float-logo.f1, .riff-float-logo.f1 {
@@ -11126,13 +11273,5 @@ body.perf .np-queue-panel { transition: none; }
   background: #f4f4f4 !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22) !important;
   transform: translateY(-1px);
-}
-
-
-/* Hide window control buttons on web */
-body:not(.electron) .window-controls #btn-minimize,
-body:not(.electron) .window-controls #btn-maximize,
-body:not(.electron) .window-controls #btn-close {
-  display: none !important;
 }
 
