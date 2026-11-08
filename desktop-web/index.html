@@ -43,9 +43,6 @@
       <button class="titlebar-btn" id="btn-mini-lyrics" title="Lyrics" aria-label="Lyrics">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
       </button>
-      <button class="titlebar-btn" id="btn-mini-player" title="Compact mini player">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="11" y="11" width="8" height="8" rx="1"/></svg>
-      </button>
       <button class="titlebar-btn" id="btn-minimize" title="Minimize">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
       </button>
@@ -130,14 +127,6 @@
         </button>
         <button class="nav-item" data-view="albums" id="nav-albums" title="Albums"><div class="nav-indicator"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg><span class="nav-badge" id="albums-count">0</span></div></button>
 
-        <button class="nav-item" data-view="local" id="nav-local" title="My files">
-          <div class="nav-indicator">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-            </svg>
-            <span class="nav-badge" id="local-count">0</span>
-          </div>
-        </button>
 
         <button class="nav-item" data-view="history" id="nav-history" title="History">
           <div class="nav-indicator">
@@ -163,7 +152,7 @@
         <div class="rail-divider"></div>
 
         <div class="rail-action-group">
-          <button class="rail-icon-btn" id="btn-toggle-presets-drawer" title="Audio presets">
+          <button class="rail-icon-btn" id="btn-toggle-presets-drawer" title="Audio presets" aria-label="Audio presets">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line>
               <line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line>
@@ -171,6 +160,16 @@
               <line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line>
               <line x1="17" y1="16" x2="23" y2="16"></line>
             </svg>
+          </button>
+          <button class="rail-icon-btn" id="btn-rail-new-playlist" title="Create playlist" aria-label="Create playlist">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <div class="rail-playlist-tooltip">
+              <span class="rail-playlist-tooltip-name" data-i18n>Create playlist</span>
+              <span class="rail-playlist-tooltip-meta" data-i18n>Add new collection</span>
+            </div>
           </button>
         </div>
 
@@ -326,33 +325,6 @@
 
       <section class="content-view" id="view-albums"><div class="search-albums-row" id="saved-albums-grid" style="flex-wrap: wrap;"></div></section>
 
-      <section class="content-view" id="view-local">
-        <div class="view-header">
-          <div>
-            <h2>My files</h2>
-            <span class="view-subtitle" id="local-subtitle">0 tracks in library</span>
-          </div>
-          <button class="btn-pill-primary" id="btn-add-local">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            <span>Add files</span>
-          </button>
-          <button class="btn-outline-pill" id="btn-add-local-folder" type="button" style="display:inline-flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg><span data-i18n>Add folder</span></button>
-        </div>
-        <div class="view-search-box" id="local-search-box">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
-          <input type="text" class="view-search-input" id="local-search-input" placeholder="Search my files..." autocomplete="off">
-        </div>
-        <div class="search-albums-row" id="local-albums-row" style="margin-bottom: 18px; display: none;"></div>
-        <div class="tracks-list" id="local-tracks-list">
-          <div class="empty-hint" style="display:flex;flex-direction:column;align-items:center;gap:12px;">
-            <span>No local tracks in library yet.</span>
-            <button class="btn-pill-primary" id="btn-add-local-files-empty">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              <span>Add files</span>
-            </button>
-          </div>
-        </div>
-      </section>
 
       <section class="content-view" id="view-history">
         <div class="view-header">
@@ -419,10 +391,6 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4" fill="currentColor" stroke="none"></polygon><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>
                 <span>Play</span>
               </button>
-              <button class="btn-outline-pill" id="btn-download-playlist" title="Download all songs" aria-label="Download all songs">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                <span id="btn-download-playlist-label">Download all</span>
-              </button>
               <button class="btn-outline-pill" id="btn-export-playlist" title="Export as JSON" aria-label="Export as JSON">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                 <span>Export as JSON</span>
@@ -455,10 +423,6 @@
               <button class="btn-pill-primary" id="btn-play-album" type="button" title="Play album" aria-label="Play album">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                 <span>Play</span>
-              </button>
-              <button class="btn-outline-pill" id="btn-download-album" type="button" title="Download album" aria-label="Download album">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                <span id="btn-download-album-label">Download</span>
               </button>
               <button type="button" class="btn-icon-pill" id="btn-save-album" title="Save album"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
             </div>
@@ -1285,13 +1249,6 @@
 
             <div class="setting-item">
               <div class="setting-item-top" style="align-items: center;">
-                <span class="setting-name">Show My files tab</span>
-                <button class="effect-switch-btn active" id="btn-show-local"><span class="thumb"></span></button>
-              </div>
-            </div>
-
-            <div class="setting-item">
-              <div class="setting-item-top" style="align-items: center;">
                 <div style="display: flex; flex-direction: column; gap: 2px;">
                   <span class="setting-name" data-i18n>Show Albums tab</span>
                   <span style="font-size: calc(12px * var(--font-scale, 1)); color: var(--md-sys-color-outline);" data-i18n>Display saved albums in the sidebar and album page</span>
@@ -1743,53 +1700,6 @@
               </div>
             </div>
 
-            <div class="setting-item" id="offline-storage-item">
-              <div class="setting-item-top" style="align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                  <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--md-sys-color-surface-container-high); display: flex; align-items: center; justify-content: center; color: var(--md-sys-color-primary);">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  </div>
-                  <div style="display: flex; flex-direction: column;">
-                    <span class="setting-name">Offline library</span>
-                    <span id="offline-library-size" style="font-size: calc(12px * var(--font-scale, 1)); color: var(--md-sys-color-outline);">Calculating...</span>
-                  </div>
-                </div>
-                <button class="btn-outline-pill" id="btn-clear-offline" style="padding: 6px 14px; font-size: calc(12px * var(--font-scale, 1));">Clear</button>
-              </div>
-            </div>
-
-            <div class="setting-item" id="music-folder-item">
-              <div class="setting-item-top" style="align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                  <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--md-sys-color-surface-container-high); display: flex; align-items: center; justify-content: center; color: var(--md-sys-color-primary);">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-                  </div>
-                  <div style="display: flex; flex-direction: column; min-width: 0;">
-                    <span class="setting-name">Music folder</span>
-                    <span id="music-folder-path" style="font-size: calc(12px * var(--font-scale, 1)); color: var(--md-sys-color-outline); word-break: break-all;">Calculating...</span>
-                  </div>
-                </div>
-                <button class="btn-outline-pill" id="btn-change-music-folder" style="padding: 6px 14px; font-size: calc(12px * var(--font-scale, 1)); flex-shrink: 0;">Change</button>
-              </div>
-            </div>
-
-            <div class="setting-item" id="download-folder-item">
-              <div class="setting-item-top" style="align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                  <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--md-sys-color-surface-container-high); display: flex; align-items: center; justify-content: center; color: var(--md-sys-color-primary);">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  </div>
-                  <div style="display: flex; flex-direction: column; min-width: 0;">
-                    <span class="setting-name">Download folder</span>
-                    <span id="download-folder-path" style="font-size: calc(12px * var(--font-scale, 1)); color: var(--md-sys-color-outline); word-break: break-all;">Calculating...</span>
-                  </div>
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-                  <button class="btn-outline-pill hidden" id="btn-reset-download-folder" style="padding: 6px 14px; font-size: calc(12px * var(--font-scale, 1));">Reset</button>
-                  <button class="btn-outline-pill" id="btn-change-download-folder" style="padding: 6px 14px; font-size: calc(12px * var(--font-scale, 1));">Change</button>
-                </div>
-              </div>
-            </div>
 
             <div class="setting-item" id="export-all-playlists-item">
               <div class="setting-item-top" style="align-items: center; justify-content: space-between;">
@@ -2341,9 +2251,6 @@
       </button>
       <button class="btn-icon-pill" id="btn-edit-current-track" title="Edit track title and artist">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-      </button>
-      <button class="btn-icon-pill" id="btn-playbar-more" title="Download track">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg>
       </button>
       <button class="btn-icon-pill riff-share-action-btn" id="btn-playbar-share" title="Copy share link" aria-label="Copy share link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 14 20 9 15 4"></polyline><path d="M4 20v-7a4 4 0 0 1 4-4h12"></path></svg>
@@ -3230,17 +3137,6 @@
     </div>
   </div>
 
-  <div class="modal-backdrop hidden" id="clear-offline-modal">
-    <div class="dialog-card">
-      <h3>Clear offline library</h3>
-      <p style="margin: 0 0 16px; color: var(--md-sys-color-on-surface-variant); font-size: calc(14px * var(--font-scale, 1));">Delete all cached tracks from offline storage? They will need to be downloaded again when played.</p>
-      <div class="dialog-actions">
-        <button class="btn-outline-pill" id="btn-cancel-clear-offline">Cancel</button>
-        <button class="btn-pill-primary" id="btn-confirm-clear-offline">Delete all</button>
-      </div>
-    </div>
-  </div>
-
 
   <div class="modal-backdrop hidden" id="track-art-modal">
     <div class="dialog-card modal-content" style="width: 460px; max-width: min(460px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 16px;">
@@ -3348,133 +3244,6 @@
     </div>
   </div>
 
-  <div class="modal-backdrop hidden" id="download-modal">
-    <div class="modal-card download-modal-card">
-      <div class="modal-header">
-        <h3 class="modal-title" id="download-modal-title">Download track</h3>
-        <button class="btn-icon-pill" id="btn-close-download-modal" title="Close">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </button>
-      </div>
-
-      <div class="download-track-preview">
-        <img class="download-preview-thumb" id="download-preview-thumb" src="" alt="" onerror="this.style.display='none'">
-        <div class="download-preview-fallback" id="download-preview-fallback">🎵</div>
-        <div class="download-preview-info">
-          <span class="download-preview-title" id="download-preview-title">Track title</span>
-          <span class="download-preview-artist" id="download-preview-artist">Artist</span>
-        </div>
-      </div>
-
-      <div class="dl-mode-tabs" id="dl-mode-tabs"><button type="button" class="dl-mode-tab active" data-dl-tab="download" data-i18n>Download file</button><button type="button" class="dl-mode-tab" data-dl-tab="trim"><span data-i18n>Trim best part</span><span class="riff-beta-badge" style="margin-left:6px;">NEW</span></button></div>
-
-      <div id="dl-pane-download">
-        <div class="download-section">
-          <span class="download-section-label">Audio format</span>
-          <div class="format-chips-grid" id="format-chips-grid">
-            <button class="format-chip active" data-format="mp3">
-              <span class="format-chip-name">MP3</span>
-              <span class="chip-tag">Universal</span>
-            </button>
-            <button class="format-chip" data-format="flac">
-              <span class="format-chip-name">FLAC</span>
-              <span class="chip-tag">Lossless</span>
-            </button>
-            <button class="format-chip" data-format="m4a">
-              <span class="format-chip-name">M4A</span>
-              <span class="chip-tag">AAC</span>
-            </button>
-            <button class="format-chip" data-format="opus">
-              <span class="format-chip-name">Opus</span>
-              <span class="chip-tag">Modern</span>
-            </button>
-            <button class="format-chip" data-format="wav">
-              <span class="format-chip-name">WAV</span>
-              <span class="chip-tag">PCM</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="download-section">
-          <span class="download-section-label">Bitrate quality</span>
-          <div class="quality-chips-grid" id="quality-chips-grid">
-            <button class="quality-chip active" data-quality="0">
-              <span class="quality-chip-name">320 kbps</span>
-              <span class="chip-tag">Studio</span>
-            </button>
-            <button class="quality-chip" data-quality="2">
-              <span class="quality-chip-name">256 kbps</span>
-              <span class="chip-tag">High quality</span>
-            </button>
-            <button class="quality-chip" data-quality="4">
-              <span class="quality-chip-name">192 kbps</span>
-              <span class="chip-tag">Standard</span>
-            </button>
-            <button class="quality-chip" data-quality="5">
-              <span class="quality-chip-name">128 kbps</span>
-              <span class="chip-tag">Compact</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="download-section" id="download-trim-section">
-          <span class="download-section-label">Trim audio</span>
-          <div class="trim-inputs">
-            <input type="text" id="trim-start" class="pill-text-input" placeholder="0:00" value="0:00">
-            <span class="trim-separator">to</span>
-            <input type="text" id="trim-end" class="pill-text-input" placeholder="End" value="">
-          </div>
-        </div>
-
-        <div class="download-section download-effects-section" id="download-effects-section">
-          <div class="effects-toggle-row">
-            <label class="effects-toggle-label" for="download-apply-effects">Apply current audio effects (Preset/High Quality)</label>
-            <input type="checkbox" id="download-apply-effects" class="m3-switch-input">
-          </div>
-        </div>
-
-        <div class="download-modal-actions">
-          <button class="btn-text-error hidden" id="btn-delete-offline-track">Delete offline file</button>
-          <div class="download-actions-right">
-            <button class="btn-outline-pill" id="btn-cancel-download">Cancel</button>
-            <div id="download-spinner"></div>
-            <button class="btn-pill-primary" id="btn-confirm-download">
-              <span id="download-btn-text">Download MP3</span>
-            </button>
-          </div>
-        </div>
-        <div class="download-caption-path">Saved to <span id="download-caption-path"></span></div>
-      </div>
-
-      <div id="dl-pane-trim" class="hidden">
-        <div class="capcut-trim-box">
-          <div class="capcut-time-readout">
-            <div class="cc-time-pill"><span class="cc-time-lbl" data-i18n>Start</span><strong id="cc-trim-start-val">0:00.0</strong></div>
-            <div class="cc-time-pill active"><span class="cc-time-lbl" data-i18n>Duration</span><strong id="cc-trim-dur-val">0:00.0</strong></div>
-            <div class="cc-time-pill"><span class="cc-time-lbl" data-i18n>End</span><strong id="cc-trim-end-val">0:00.0</strong></div>
-          </div>
-          <div class="capcut-wave-stage" id="capcut-wave-stage">
-            <canvas id="capcut-wave-canvas" width="420" height="88"></canvas>
-            <div class="cc-mask cc-mask-left" id="cc-mask-left"></div>
-            <div class="cc-mask cc-mask-right" id="cc-mask-right"></div>
-            <div class="cc-selection-box" id="cc-selection-box">
-              <div class="cc-handle cc-handle-left" id="cc-handle-left" title="Drag start"><span class="cc-grip"></span><div class="cc-float-time" id="cc-float-left">0:00.0</div></div>
-              <div class="cc-handle cc-handle-right" id="cc-handle-right" title="Drag end"><span class="cc-grip"></span><div class="cc-float-time" id="cc-float-right">0:00.0</div></div>
-            </div>
-            <div class="cc-playhead" id="cc-playhead"></div>
-          </div>
-          <div class="capcut-trim-hint" data-i18n>Drag the handles to keep only your favorite part of this track. Outside parts will be skipped automatically during playback.</div>
-          <div class="dialog-actions" style="margin-top: 14px; justify-content: space-between;">
-            <div style="display:flex;gap:8px;">
-              <button type="button" class="btn-outline-pill" id="btn-cc-preview"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-right:6px;"><polygon points="5 3 19 12 5 21 5 3"/></svg><span data-i18n>Preview</span></button>
-              <button type="button" class="btn-outline-pill hidden" id="btn-cc-reset" data-i18n>Reset trim</button>
-            </div>
-            <button type="button" class="btn-pill-primary" id="btn-cc-save"><span data-i18n>Save trim</span></button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <div class="modal-backdrop hidden" id="custom-lyrics-modal">
     <div class="settings-card custom-lyrics-card">

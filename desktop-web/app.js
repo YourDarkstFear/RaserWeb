@@ -11216,13 +11216,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       <button class="btn-icon-pill btn-row-add-playlist" title="add to playlist">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
       </button>
-      ${(context === 'local' || track.platform === 'local') ? `
+      ${window.electronAPI ? ((context === 'local' || track.platform === 'local') ? `
       <button class="btn-icon-pill btn-row-remove-local btn-remove-local delete-btn" title="Remove from library">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
       </button>` : `
       <button class="btn-icon-pill btn-row-more" title="download & options">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle><circle cx="5" cy="12" r="2"></circle></svg>
-      </button>`}
+      </button>`) : ''}
       ${context === 'playlist' ? `
         <button class="btn-icon-pill btn-row-remove-playlist delete-btn btn-delete btn-remove" title="remove from playlist">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -14945,6 +14945,15 @@ function bindCoverHoldZoom(wrapEl) {
 
   if (el.btnNewPlaylist) {
     el.btnNewPlaylist.addEventListener('click', () => {
+      if (el.newPlaylistInput) el.newPlaylistInput.value = '';
+      if (el.createPlaylistModal) openModal(el.createPlaylistModal);
+      if (el.newPlaylistInput) el.newPlaylistInput.focus();
+    });
+  }
+
+  const btnRailNewPlaylist = document.getElementById('btn-rail-new-playlist');
+  if (btnRailNewPlaylist) {
+    btnRailNewPlaylist.addEventListener('click', () => {
       if (el.newPlaylistInput) el.newPlaylistInput.value = '';
       if (el.createPlaylistModal) openModal(el.createPlaylistModal);
       if (el.newPlaylistInput) el.newPlaylistInput.focus();

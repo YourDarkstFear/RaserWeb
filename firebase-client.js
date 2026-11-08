@@ -762,6 +762,9 @@
 
     function openModal() {
       if (!modal) return;
+      if (modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+      }
       clearStatus();
       updateModalI18n();
       if (currentUser) {
