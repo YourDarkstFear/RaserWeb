@@ -4,6 +4,43 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 const crypto = require('crypto');
+const { execFile } = require('child_process');
+
+const streamCache = new Map(); // id -> { url, expireAt }
+
+function resolveAudioStream(id) {
+  return new Promise((resolve, reject) => {
+    if (!id || !/^[\w-]{11}$/.test(id)) {
+      return reject(new Error('Invalid video id'));
+    }
+    const cached = streamCache.get(id);
+    if (cached && cached.expireAt > Date.now()) {
+      return resolve(cached.url);
+    }
+
+    execFile('yt-dlp', ['-g', '-f', '140/ba/b', `https://www.youtube.com/watch?v=${id}`], { timeout: 15000 }, (err, stdout) => {
+      if (err) {
+        execFile('yt-dlp', ['-g', `https://www.youtube.com/watch?v=${id}`], { timeout: 15000 }, (fErr, fOut) => {
+          if (fErr) return reject(new Error('Failed to resolve audio stream'));
+          const streamUrl = (fOut || '').trim().split('\n')[0];
+          if (streamUrl) {
+            streamCache.set(id, { url: streamUrl, expireAt: Date.now() + 3600000 });
+            return resolve(streamUrl);
+          }
+          reject(new Error('No stream found'));
+        });
+        return;
+      }
+      const streamUrl = (stdout || '').trim().split('\n')[0];
+      if (streamUrl) {
+        streamCache.set(id, { url: streamUrl, expireAt: Date.now() + 7200000 });
+        resolve(streamUrl);
+      } else {
+        reject(new Error('No stream URL extracted'));
+      }
+    });
+  });
+}
 
 const PORT = process.env.PORT || 3850;
 const PUBLIC_DIR = __dirname;
@@ -330,7 +367,8 @@ const server = http.createServer(async (req, res) => {
           saveLinksStore();
         }
 
-        const host = req.headers['x-forwarded-host'] || req.headers.host || 'raser.iloveteto.com';
+        let host = req.headers['x-forwarded-host'] || req.headers.host || 'raserapp.online';
+        if (host.startsWith('app.')) host = host.slice(4);
         const proto = req.headers['x-forwarded-proto'] || 'https';
         const shortUrl = `${proto}://${host}/s/${code}`;
 
@@ -431,6 +469,26 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Stream resolver endpoint: /api/stream?id=...
+  if (pathname === '/api/stream') {
+    const id = (reqUrl.searchParams.get('id') || '').trim();
+    if (!id || !/^[\w-]{11}$/.test(id)) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: 'Invalid video ID' }));
+      return;
+    }
+
+    try {
+      const streamUrl = await resolveAudioStream(id);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, streamUrl }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+    return;
+  }
+
   // Health check
   if (pathname === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -453,9 +511,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Main page / player
-  if (pathname === '/' || pathname === '/index.html') {
-    const filePath = path.join(PUBLIC_DIR, 'index.html');
+  // Main page / player / web player
+  if (pathname === '/' || pathname === '/index.html' || pathname === '/app' || pathname === '/app/') {
+    const host = (req.headers['x-forwarded-host'] || req.headers.host || '').toLowerCase();
+    const isApp = host.startsWith('app.') || pathname.startsWith('/app') || reqUrl.searchParams.get('app') === '1';
+    const targetFile = isApp ? 'webplayer.html' : 'index.html';
+    const filePath = path.join(PUBLIC_DIR, targetFile);
     fs.readFile(filePath, (err, data) => {
       if (err) {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
