@@ -63,7 +63,9 @@
       statsSummary: 'Cloud Library',
       tracksWord: 'tracks',
       playlistsWord: 'playlists',
-      historyWord: 'history'
+      historyWord: 'history',
+      guestBtn: 'Continue as Guest (Stay Anonymous)',
+      mandatoryLogin: 'Please sign in or create an account to use the desktop app.'
     },
     tr: {
       signIn: 'Giriş Yap',
@@ -92,7 +94,9 @@
       statsSummary: 'Buluttaki Kütüphanen',
       tracksWord: 'şarkı',
       playlistsWord: 'çalma listesi',
-      historyWord: 'geçmiş'
+      historyWord: 'geçmiş',
+      guestBtn: 'Misafir Olarak Devam Et (Anonim Kal)',
+      mandatoryLogin: 'Masaüstü uygulamasını kullanmak için giriş yapmanız zorunludur.'
     }
   };
 
@@ -544,6 +548,30 @@
     const signoutBtn = document.getElementById('btn-signout');
     const forgotBtn = document.getElementById('btn-forgot-password');
 
+    const isDesktop = window.location.protocol === 'file:' || !!window.electronAPI;
+    const guestAuthRow = document.getElementById('guest-auth-row');
+    const guestBtn = document.getElementById('btn-guest-signin');
+
+    if (isDesktop) {
+      guestAuthRow?.classList.add('hidden');
+    } else {
+      guestAuthRow?.classList.remove('hidden');
+      if (guestBtn) {
+        guestBtn.querySelector('span')?.setAttribute('data-i18n', '');
+        guestBtn.querySelector('span') && (guestBtn.querySelector('span').textContent = t('guestBtn'));
+        guestBtn.addEventListener('click', async () => {
+          clearStatus();
+          try {
+            showStatus(t('syncing'), false);
+            await signInGuest();
+            closeModal(true);
+          } catch (err) {
+            showStatus(err.message || 'Guest sign-in error', true);
+          }
+        });
+      }
+    }
+
     let isRegisterMode = false;
 
     function showStatus(msg, isError = true) {
@@ -580,6 +608,7 @@
       if (!modal) return;
       clearStatus();
       if (currentUser) {
+        btnClose?.classList.remove('hidden');
         authView?.classList.add('hidden');
         profileView?.classList.remove('hidden');
         const pName = document.getElementById('profile-display-name');
@@ -602,6 +631,11 @@
 
         updateStatsUI();
       } else {
+        if (isDesktop) {
+          btnClose?.classList.add('hidden');
+        } else {
+          btnClose?.classList.remove('hidden');
+        }
         authView?.classList.remove('hidden');
         profileView?.classList.add('hidden');
         setAuthMode(false);
@@ -611,19 +645,36 @@
       requestAnimationFrame(() => modal.classList.add('visible'));
     }
 
-    function closeModal() {
+    function closeModal(force = false) {
       if (!modal) return;
+      if (!force && isDesktop && !currentUser) {
+        showStatus(t('mandatoryLogin'), true);
+        return;
+      }
       modal.classList.remove('visible');
       setTimeout(() => modal.classList.add('hidden'), 200);
     }
 
     if (btnPill) btnPill.addEventListener('click', openModal);
-    if (btnClose) btnClose.addEventListener('click', closeModal);
+    if (btnClose) btnClose.addEventListener('click', () => closeModal(false));
     if (modal) {
       modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
+        if (e.target === modal) {
+          if (isDesktop && !currentUser) {
+            showStatus(t('mandatoryLogin'), true);
+            return;
+          }
+          closeModal();
+        }
       });
     }
+
+    // Auto prompt on startup if not signed in
+    setTimeout(() => {
+      if (!currentUser) {
+        openModal();
+      }
+    }, 700);
 
     if (tabLogin) tabLogin.addEventListener('click', () => setAuthMode(false));
     if (tabRegister) tabRegister.addEventListener('click', () => setAuthMode(true));

@@ -3872,6 +3872,13 @@
         <button type="button" class="btn-pill-primary" id="btn-submit-auth" style="width: 100%;">
           <span id="btn-submit-auth-label" data-i18n>Sign In</span>
         </button>
+
+        <!-- Web Only: Anonymous / Guest Continue -->
+        <div id="guest-auth-row" class="hidden" style="margin-top: 4px;">
+          <button type="button" class="btn-outline-pill" id="btn-guest-signin" style="width: 100%; height: 38px; font-size: calc(13px * var(--font-scale, 1)); border-color: var(--md-sys-color-outline-variant, rgba(255,255,255,0.12)); color: var(--md-sys-color-on-surface-variant);">
+            <span data-i18n>Continue as Guest (Stay Anonymous)</span>
+          </button>
+        </div>
       </div>
 
       <!-- State B: Signed In (Profile & Auto Sync Status) -->
@@ -3920,3 +3927,4 @@
   <script src="app.js"></script>
 </body>
 </html>
+
