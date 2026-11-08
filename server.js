@@ -489,6 +489,64 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Desktop stream info endpoint: /api/stream-info?id=...&url=...
+  if (pathname === '/api/stream-info') {
+    const id = (reqUrl.searchParams.get('id') || '').trim() || extractYouTubeId(reqUrl.searchParams.get('url') || '');
+    if (!id || !/^[\w-]{11}$/.test(id)) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: 'Invalid video ID' }));
+      return;
+    }
+
+    try {
+      const streamUrl = await resolveAudioStream(id);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        streamUrl,
+        rawStreamUrl: streamUrl,
+        isHls: false,
+        isLocal: false
+      }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+    return;
+  }
+
+  // Desktop helper endpoints
+  if (pathname === '/api/i18n-batch' || pathname === '/api/translate') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, translations: {} }));
+    return;
+  }
+  if (pathname === '/api/state' || pathname.startsWith('/api/lastfm')) {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true }));
+    return;
+  }
+  if (pathname === '/api/track-cover' || pathname === '/api/lyrics' || pathname === '/api/lyrics-words') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: false, lyrics: '' }));
+    return;
+  }
+
+  // Desktop Google Auth Bridge
+  if (pathname === '/auth-desktop' || pathname === '/auth-desktop.html') {
+    const filePath = path.join(PUBLIC_DIR, 'auth-desktop.html');
+    fs.readFile(filePath, (err, data) => {
+      if (err) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Auth bridge page not found');
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=UTF-8', 'Cache-Control': 'no-cache' });
+      res.end(data);
+    });
+    return;
+  }
+
   // Health check
   if (pathname === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -511,13 +569,14 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  const host = (req.headers['x-forwarded-host'] || req.headers.host || '').toLowerCase();
+  const isApp = host.startsWith('app.') || pathname.startsWith('/app') || reqUrl.searchParams.get('app') === '1';
+
   // Main page / player / web player
   if (pathname === '/' || pathname === '/index.html' || pathname === '/app' || pathname === '/app/') {
-    const host = (req.headers['x-forwarded-host'] || req.headers.host || '').toLowerCase();
-    const isApp = host.startsWith('app.') || pathname.startsWith('/app') || reqUrl.searchParams.get('app') === '1';
-    const targetFile = isApp ? 'webplayer.html' : 'index.html';
-    const filePath = path.join(PUBLIC_DIR, targetFile);
-    fs.readFile(filePath, (err, data) => {
+    // If accessing via app subdomain or /app, serve the 1:1 Desktop Web Player!
+    const targetFile = isApp ? path.join(PUBLIC_DIR, 'desktop-web', 'index.html') : path.join(PUBLIC_DIR, 'index.html');
+    fs.readFile(targetFile, (err, data) => {
       if (err) {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.end('Not Found');
@@ -527,6 +586,26 @@ const server = http.createServer(async (req, res) => {
       res.end(data);
     });
     return;
+  }
+
+  // If in app context and file exists in desktop-web, serve it
+  if (isApp) {
+    const desktopPath = path.normalize(path.join(PUBLIC_DIR, 'desktop-web', pathname)).replace(/^(\.\.[\/\\])+/, '');
+    if (desktopPath.startsWith(path.join(PUBLIC_DIR, 'desktop-web')) && fs.existsSync(desktopPath) && fs.statSync(desktopPath).isFile()) {
+      const ext = path.extname(desktopPath).toLowerCase();
+      const mimeTypes = {
+        '.html': 'text/html; charset=UTF-8',
+        '.js': 'application/javascript',
+        '.css': 'text/css',
+        '.svg': 'image/svg+xml',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.json': 'application/json'
+      };
+      res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
+      fs.createReadStream(desktopPath).pipe(res);
+      return;
+    }
   }
 
   // Static files fallback
@@ -548,7 +627,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Fallback to index.html
-  fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (err, data) => {
+  const fallbackFile = isApp ? path.join(PUBLIC_DIR, 'desktop-web', 'index.html') : path.join(PUBLIC_DIR, 'index.html');
+  fs.readFile(fallbackFile, (err, data) => {
     if (err) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('Not Found');

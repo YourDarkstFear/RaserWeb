@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Raser - Google ile Giriş Yap</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/raser.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --md-sys-color-primary: #a8c7fa;
+      --md-sys-color-on-primary: #04315a;
+      --md-sys-color-primary-container: #234773;
+      --md-sys-color-surface: #121316;
+      --md-sys-color-surface-container: #1b1c20;
+      --md-sys-color-outline: rgba(255, 255, 255, 0.12);
+      --md-sys-color-on-surface: #e2e2e6;
+      --md-sys-color-on-surface-variant: #c4c6cf;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Google Sans', system-ui, sans-serif; }
+    
+    body {
+      background: #0d0e11;
+      color: var(--md-sys-color-on-surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .bg-mesh {
+      position: absolute;
+      top: -20%;
+      left: -20%;
+      width: 140%;
+      height: 140%;
+      background: radial-gradient(circle at 30% 30%, rgba(168, 199, 250, 0.15), transparent 50%),
+                  radial-gradient(circle at 70% 70%, rgba(242, 184, 181, 0.12), transparent 50%);
+      filter: blur(80px);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      width: 90%;
+      max-width: 440px;
+      padding: 40px 32px;
+      background: rgba(27, 28, 32, 0.75);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid var(--md-sys-color-outline);
+      border-radius: 28px;
+      text-align: center;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .logo {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 20px;
+      background: var(--md-sys-color-primary);
+      mask: url('/assets/raser.svg') no-repeat center / contain;
+      -webkit-mask: url('/assets/raser.svg') no-repeat center / contain;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    p.subtitle {
+      font-size: 14px;
+      color: var(--md-sys-color-on-surface-variant);
+      line-height: 1.5;
+      margin-bottom: 28px;
+    }
+
+    .btn-google {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+      padding: 14px 24px;
+      background: #ffffff;
+      color: #1f1f1f;
+      font-size: 15px;
+      font-weight: 500;
+      border: none;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-google:hover {
+      background: #f1f3f4;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+    }
+
+    .status-box {
+      margin-top: 20px;
+      font-size: 14px;
+      color: var(--md-sys-color-on-surface-variant);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 24px;
+    }
+
+    .success-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+      border-radius: 50%;
+      background: rgba(168, 199, 250, 0.15);
+      color: var(--md-sys-color-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.4); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .hidden { display: none !important; }
+  </style>
+
+  <!-- Firebase Compat Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+</head>
+<body>
+  <div class="bg-mesh"></div>
+
+  <div class="card">
+    <div class="logo"></div>
+    
+    <div id="auth-prompt-view">
+      <h1>Raser Masaüstü Girişi</h1>
+      <p class="subtitle">Google hesabınızla giriş yaparak tüm çalma listelerinizi ve müzik geçmişinizi buluta bağlayın.</p>
+      
+      <button id="btn-signin" class="btn-google">
+        <svg width="18" height="18" viewBox="0 0 18 18">
+          <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"/>
+          <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+          <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.347 2.825.957 4.039l3.007-2.332z"/>
+          <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
+        </svg>
+        <span>Google ile Giriş Yap</span>
+      </button>
+
+      <div id="status-box" class="status-box"></div>
+    </div>
+
+    <div id="auth-success-view" class="hidden">
+      <div class="success-icon">✓</div>
+      <h1>Giriş Başarılı!</h1>
+      <p class="subtitle" id="user-greeting">Masaüstü Raser uygulamasına bağlandınız.</p>
+      <p class="subtitle" style="color: var(--md-sys-color-primary); font-weight: 500;">
+        Bu sekmeyi güvenle kapatıp Raser uygulamasına dönebilirsiniz.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyBUOp8uT0tNRiWqo8YPF6QfcLnH5IwhN3Y",
+      authDomain: "raser-b7bdd.firebaseapp.com",
+      projectId: "raser-b7bdd",
+      storageBucket: "raser-b7bdd.firebasestorage.app",
+      messagingSenderId: "686773935307",
+      appId: "1:686773935307:web:0e457faa88ad5afd1e4f4e",
+      measurementId: "G-XGV98BW0JL"
+    };
+
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const auth = firebase.auth();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const localPort = urlParams.get('port') || '38472';
+
+    const btnSignIn = document.getElementById('btn-signin');
+    const statusBox = document.getElementById('status-box');
+    const promptView = document.getElementById('auth-prompt-view');
+    const successView = document.getElementById('auth-success-view');
+    const userGreeting = document.getElementById('user-greeting');
+
+    async function sendAuthToDesktop(user, cred) {
+      statusBox.textContent = 'Masaüstü Raser uygulamasına aktarılıyor...';
+      try {
+        const idToken = await user.getIdToken();
+        const googleIdToken = (cred && cred.credential && cred.credential.idToken) || '';
+        const googleAccessToken = (cred && cred.credential && cred.credential.accessToken) || '';
+        
+        const payload = {
+          uid: user.uid,
+          email: user.email || '',
+          displayName: user.displayName || user.email?.split('@')[0] || 'User',
+          photoURL: user.photoURL || '',
+          idToken: idToken,
+          googleIdToken: googleIdToken,
+          googleAccessToken: googleAccessToken
+        };
+
+        const res = await fetch(`http://127.0.0.1:${localPort}/api/desktop-auth-receive`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          promptView.classList.add('hidden');
+          successView.classList.remove('hidden');
+          userGreeting.textContent = `Hoş geldin, ${payload.displayName}!`;
+          setTimeout(() => {
+            try { window.close(); } catch (_) {}
+          }, 3000);
+        } else {
+          statusBox.textContent = 'Masaüstü uygulamasına bağlanılamadı. Raser uygulamasının açık olduğundan emin olun.';
+        }
+      } catch (err) {
+        console.error('Desktop transfer error:', err);
+        statusBox.textContent = 'Masaüstü uygulamasına bağlanılamadı. Raser açık mı?';
+      }
+    }
+
+    btnSignIn.addEventListener('click', async () => {
+      statusBox.textContent = 'Google giriş penceresi açılıyor...';
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.addScope('email');
+        provider.addScope('profile');
+        const cred = await auth.signInWithPopup(provider);
+        if (cred && cred.user) {
+          await sendAuthToDesktop(cred.user, cred);
+        }
+      } catch (err) {
+        console.error('Auth error:', err);
+        statusBox.textContent = err.message || 'Google girişi iptal edildi veya başarısız oldu.';
+      }
+    });
+
+    // Auto trigger on load
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        btnSignIn.click();
+      }, 500);
+    });
+  </script>
+</body>
+</html>
