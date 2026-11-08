@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Raser — Search Songs & Create Share Links</title>
+  
+  <meta property="og:site_name" content="Raser">
+  <meta property="og:title" content="Raser — Search Songs & Create Share Links">
+  <meta property="og:description" content="Search songs, paste direct YouTube links, preview music, and generate Material You shareable links with Raser.">
+  <meta name="theme-color" content="#d0bcff">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700;800&family=Google+Sans+Text:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #121214;
+      --surface: #1e1f22;
+      --surface-high: #28292c;
+      --surface-highest: #333438;
+      --primary: #d0bcff;
+      --on-primary: #381e72;
+      --primary-container: #4f378b;
+      --on-primary-container: #eaddff;
+      --on-surface: #e6e6e8;
+      --on-surface-variant: #cac4d0;
+      --outline: #938f99;
+      --outline-variant: #49454f;
+      --accent: var(--primary);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Google Sans', 'Google Sans Text', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      width: 100%;
+      min-height: 100vh;
+      background-color: var(--bg);
+      color: var(--on-surface);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      overflow-x: hidden;
+      overscroll-behavior-x: none;
+      padding-bottom: 120px;
+    }
+
+    .top-banner {
+      width: 100%;
+      height: 40px;
+      flex-shrink: 0;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: var(--on-surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      padding: 0 20px;
+      z-index: 100;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      transition: background-color 0.2s ease;
+    }
+
+    .top-banner:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .top-banner svg {
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: var(--primary);
+      stroke-width: 2.2;
+    }
+
+    .hero-glow {
+      position: fixed;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(900px, 95vw);
+      height: min(650px, 70vh);
+      background: var(--accent);
+      filter: blur(140px) saturate(2.4);
+      opacity: 0.35;
+      pointer-events: none !important;
+      z-index: 0;
+      border-radius: 50%;
+      transition: background 0.6s ease, opacity 0.6s ease;
+    }
+
+    .main-wrap {
+      width: 100%;
+      max-width: 900px;
+      padding: 40px 20px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .header-block {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface-high);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+
+    .header-title {
+      font-size: clamp(28px, 4.5vw, 42px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--on-surface);
+    }
+
+    .header-subtitle {
+      font-size: 15px;
+      color: var(--on-surface-variant);
+      max-width: 540px;
+      line-height: 1.5;
+    }
+
+    .search-bar-wrap {
+      width: 100%;
+      max-width: 720px;
+      position: relative;
+    }
+
+    .search-bar {
+      width: 100%;
+      height: 64px;
+      background: var(--surface);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 32px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px 0 24px;
+      gap: 14px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+      transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+    }
+
+    .search-bar:focus-within {
+      border-color: var(--primary);
+      background: var(--surface-high);
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5), 0 0 0 3px rgba(208, 188, 255, 0.18);
+    }
+
+    .search-icon {
+      width: 22px;
+      height: 22px;
+      color: var(--outline);
+      flex-shrink: 0;
+    }
+
+    .search-input {
+      flex: 1;
+      height: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--on-surface);
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .search-input::placeholder {
+      color: var(--outline);
+    }
+
+    .btn-clear {
+      background: transparent;
+      border: none;
+      color: var(--outline);
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 50%;
+      transition: background-color 0.2s, color 0.2s;
+    }
+
+    .btn-clear:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--on-surface);
+    }
+
+    .btn-clear svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      fill: none;
+    }
+
+    .btn-search-action {
+      background: var(--primary);
+      color: var(--on-primary);
+      border: none;
+      height: 44px;
+      padding: 0 22px;
+      border-radius: 22px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform 0.15s, filter 0.15s;
+    }
+
+    .btn-search-action:hover {
+      transform: scale(1.04);
+      filter: brightness(1.08);
+    }
+
+    .btn-search-action:active {
+      transform: scale(0.97);
+    }
+
+    .pill-suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      max-width: 720px;
+    }
+
+    .pill-item {
+      background: var(--surface-high);
+      color: var(--on-surface-variant);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s, color 0.2s, transform 0.1s;
+    }
+
+    .pill-item:hover {
+      background: var(--surface-highest);
+      color: var(--on-surface);
+      transform: translateY(-1px);
+    }
+
+    .results-wrap {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .results-header {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--outline);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0 8px;
+    }
+
+    .track-card {
+      background: var(--surface);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 20px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+    }
+
+    .track-card:hover {
+      background: var(--surface-high);
+      border-color: rgba(255, 255, 255, 0.16);
+      transform: translateY(-2px);
+    }
+
+    .track-card.active {
+      border-color: var(--primary);
+      background: var(--surface-high);
+    }
+
+    .card-thumb-wrap {
+      position: relative;
+      width: 58px;
+      height: 58px;
+      border-radius: 14px;
+      overflow: hidden;
+      flex-shrink: 0;
+      background: var(--surface-highest);
+      cursor: pointer;
+    }
+
+    .card-thumb {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .thumb-play-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .card-thumb-wrap:hover .thumb-play-overlay,
+    .track-card.active .thumb-play-overlay {
+      opacity: 1;
+    }
+
+    .thumb-play-overlay svg {
+      width: 24px;
+      height: 24px;
+      fill: #fff;
+    }
+
+    .card-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--on-surface);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-artist {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--on-surface-variant);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-dur {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--outline);
+      font-variant-numeric: tabular-nums;
+      margin-left: 8px;
+    }
+
+    .source-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(255, 68, 68, 0.18);
+      color: #ff8585;
+      letter-spacing: 0.02em;
+      margin-left: 8px;
+    }
+
+    .source-tag svg {
+      width: 12px;
+      height: 12px;
+      fill: currentColor;
+    }
+
+    .card-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .btn-card {
+      height: 38px;
+      padding: 0 14px;
+      border-radius: 19px;
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+      transition: background-color 0.15s, transform 0.1s, color 0.15s;
+    }
+
+    .btn-card-primary {
+      background: var(--primary);
+      color: var(--on-primary);
+    }
+
+    .btn-card-primary:hover {
+      filter: brightness(1.08);
+      transform: scale(1.03);
+    }
+
+    .btn-card-secondary {
+      background: var(--surface-highest);
+      color: var(--on-surface);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-card-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.03);
+    }
+
+    .btn-card svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    /* Bottom Floating Player */
+    .bottom-player {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%) translateY(120px);
+      width: min(840px, 94vw);
+      background: rgba(30, 31, 34, 0.94);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 28px;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+      z-index: 500;
+      transition: transform 0.35s cubic-bezier(0.2, 0, 0, 1), opacity 0.3s;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .bottom-player.active {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .bp-thumb {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: var(--surface-high);
+    }
+
+    .bp-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .bp-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--on-surface);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bp-artist {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--on-surface-variant);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bp-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .bp-play-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: var(--on-primary);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    .bp-play-btn:hover {
+      transform: scale(1.06);
+    }
+
+    .bp-play-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    .toast-msg {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-30px);
+      background: var(--surface-highest);
+      color: var(--on-surface);
+      border: 1px solid var(--primary);
+      padding: 10px 22px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s, transform 0.25s cubic-bezier(0.2, 0, 0, 1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toast-msg.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid rgba(255, 255, 255, 0.15);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 30px auto;
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 680px) {
+      .track-card {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .card-actions {
+        width: 100%;
+        justify-content: flex-end;
+      }
+      .btn-card {
+        flex: 1;
+        justify-content: center;
+      }
+      .bottom-player {
+        bottom: 12px;
+        width: calc(100vw - 24px);
+        padding: 10px 14px;
+        gap: 10px;
+        border-radius: 20px;
+      }
+      .bp-thumb {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+      }
+      .bp-title {
+        font-size: 14px;
+      }
+      .bp-artist {
+        font-size: 11px;
+      }
+      .bp-controls {
+        gap: 8px;
+      }
+      .bp-controls .btn-card span {
+        display: none;
+      }
+      .bp-controls .btn-card {
+        padding: 0 12px;
+        height: 40px;
+      }
+      .bp-play-btn {
+        width: 40px;
+        height: 40px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <a href="https://github.com/YourDarkstFear/Raser" target="_blank" rel="noopener" class="top-banner">
+    <span>Download Raser — Modern Music Player on your device</span>
+    <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </a>
+
+  <div class="hero-glow" id="heroGlow"></div>
+
+  <main class="main-wrap">
+    <div class="header-block">
+      <div class="brand-badge">Raser Web Search</div>
+      <h1 class="header-title">Search Songs & Create Links</h1>
+      <p class="header-subtitle">
+        Search for any song, paste a direct YouTube link, preview the music, and copy your shareable Material You link with one click.
+      </p>
+    </div>
+
+    <div class="search-bar-wrap">
+      <form id="searchForm" class="search-bar">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="searchInput" class="search-input" placeholder="Search by song, artist, album, or paste a YouTube URL..." autocomplete="off" autofocus>
+        <button type="button" id="btnClear" class="btn-clear" style="display:none;" title="Clear search">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+        <button type="submit" class="btn-search-action">Search</button>
+      </form>
+    </div>
+
+    <div class="pill-suggestions">
+      <span class="pill-item" onclick="quickSearch('Falling Tears KPHK')">Falling Tears</span>
+      <span class="pill-item" onclick="quickSearch('Dua Lipa Houdini')">Dua Lipa</span>
+      <span class="pill-item" onclick="quickSearch('The Weeknd Blinding Lights')">The Weeknd</span>
+      <span class="pill-item" onclick="quickSearch('Radiohead Creep')">Radiohead</span>
+      <span class="pill-item" onclick="quickSearch('Arctic Monkeys Do I Wanna Know')">Arctic Monkeys</span>
+    </div>
+
+    <div class="spinner" id="loaderSpinner"></div>
+
+    <div class="results-wrap" id="resultsWrap" style="display: none;">
+      <div class="results-header" id="resultsHeader">Results</div>
+      <div id="resultsList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+    </div>
+  </main>
+
+  <!-- Bottom Player -->
+  <div class="bottom-player" id="bottomPlayer">
+    <img src="" alt="Cover" class="bp-thumb" id="bpThumb">
+    <div class="bp-info">
+      <div class="bp-title" id="bpTitle">Track Title</div>
+      <div class="bp-artist" id="bpArtist">Artist</div>
+    </div>
+    <div class="bp-controls">
+      <button class="bp-play-btn" id="bpPlayBtn" title="Play / Pause">
+        <svg id="bpPlayIcon" viewBox="0 0 24 24"><polygon points="7 4 20 12 7 20 7 4"/></svg>
+        <svg id="bpPauseIcon" style="display:none;" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+      </button>
+      <button class="btn-card btn-card-primary" id="bpCopyBtn" title="Copy Share Link">
+        <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+        <span>Copy Link</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast-msg">
+    <span>✓</span>
+    <span id="toastText">Link copied!</span>
+  </div>
+
+  <audio id="previewAudio" style="display:none;"></audio>
+  <div id="ytHost" style="position:fixed;bottom:-100px;right:-100px;width:10px;height:10px;opacity:0.001;pointer-events:none;"></div>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script>
+    let ytPlayer = null;
+    let ytReady = false;
+    let currentTrack = null;
+    let isPlaying = false;
+    const previewAudio = document.getElementById('previewAudio');
+    const bottomPlayer = document.getElementById('bottomPlayer');
+    const bpThumb = document.getElementById('bpThumb');
+    const bpTitle = document.getElementById('bpTitle');
+    const bpArtist = document.getElementById('bpArtist');
+    const bpPlayBtn = document.getElementById('bpPlayBtn');
+    const bpPlayIcon = document.getElementById('bpPlayIcon');
+    const bpPauseIcon = document.getElementById('bpPauseIcon');
+    const bpCopyBtn = document.getElementById('bpCopyBtn');
+    const heroGlow = document.getElementById('heroGlow');
+    const toast = document.getElementById('toast');
+    const toastText = document.getElementById('toastText');
+    const searchInput = document.getElementById('searchInput');
+    const btnClear = document.getElementById('btnClear');
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function extractYouTubeId(str) {
+      if (!str || typeof str !== 'string') return null;
+      const trimmed = str.trim();
+      if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+        if (!/^(cand_|dz_|it_|sp_|ym_)/i.test(trimmed)) return trimmed;
+        return null;
+      }
+      const regExp = /(?:https?:\/\/)?(?:www\.|m\.|music\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts|live)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i;
+      const match = trimmed.match(regExp);
+      if (match && match[1] && !/^(cand_|dz_|it_|sp_|ym_)/i.test(match[1])) {
+        return match[1];
+      }
+      return null;
+    }
+
+    window.onYouTubeIframeAPIReady = function () {
+      ytPlayer = new YT.Player('ytHost', {
+        height: '64',
+        width: '64',
+        playerVars: { playsinline: 1, controls: 0, disablekb: 1, fs: 0 },
+        events: {
+          onReady: () => { ytReady = true; },
+          onStateChange: (e) => {
+            if (e.data === YT.PlayerState.PLAYING) setPlayerState(true);
+            else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.ENDED) setPlayerState(false);
+          }
+        }
+      });
+    };
+
+    function setPlayerState(playing) {
+      isPlaying = playing;
+      if (playing) {
+        bpPlayIcon.style.display = 'none';
+        bpPauseIcon.style.display = 'block';
+      } else {
+        bpPlayIcon.style.display = 'block';
+        bpPauseIcon.style.display = 'none';
+      }
+    }
+
+    function showToast(msg) {
+      toastText.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2400);
+    }
+
+    function fmtTime(sec) {
+      if (!sec) return '0:00';
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    function buildShareUrl(track) {
+      const base = window.location.origin ? window.location.origin : 'https://raser.iloveteto.com';
+      const params = new URLSearchParams();
+      params.set('t', 'music');
+      if (track.title) params.set('n', track.title);
+      if (track.artist) params.set('a', track.artist);
+      if (track.url) params.set('url', track.url);
+      if (track.thumbnail) params.set('img', track.thumbnail);
+      if (track.duration) params.set('dur', String(track.duration));
+      return `${base}/?${params.toString()}`;
+    }
+
+    async function copyLink(track) {
+      try {
+        const res = await fetch('/api/shorten', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            n: track.title,
+            a: track.artist,
+            url: track.url,
+            img: track.thumbnail,
+            dur: track.duration,
+            t: 'music',
+            stream: track.streamUrl || ''
+          })
+        });
+        const data = await res.json();
+        if (data && data.url) {
+          await navigator.clipboard.writeText(data.url);
+          showToast(`Short link copied! (${data.code})`);
+          return;
+        }
+      } catch (err) {
+        console.warn('Shorten API failed, falling back:', err);
+      }
+
+      const shareUrl = buildShareUrl(track);
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        showToast('Share link copied to clipboard!');
+      }).catch(() => {
+        showToast('Failed to copy link');
+      });
+    }
+
+    function playTrack(track) {
+      currentTrack = track;
+      bottomPlayer.classList.add('active');
+      bpThumb.src = track.thumbnail || '';
+      bpTitle.textContent = track.title || 'Untitled';
+      bpArtist.textContent = track.artist || 'Unknown Artist';
+
+      document.querySelectorAll('.track-card').forEach(el => el.classList.remove('active'));
+      const card = document.getElementById(`card-${track.id}`);
+      if (card) card.classList.add('active');
+
+      if (track.streamUrl) {
+        if (ytPlayer && ytReady) ytPlayer.stopVideo();
+        previewAudio.src = track.streamUrl;
+        previewAudio.play().then(() => setPlayerState(true)).catch(() => {});
+      } else if (track.id && ytPlayer && ytReady) {
+        previewAudio.pause();
+        ytPlayer.loadVideoById(track.id);
+        ytPlayer.playVideo();
+        setPlayerState(true);
+      }
+    }
+
+    bpPlayBtn.addEventListener('click', () => {
+      if (isPlaying) {
+        previewAudio.pause();
+        if (ytPlayer && ytReady) ytPlayer.pauseVideo();
+        setPlayerState(false);
+      } else if (currentTrack) {
+        playTrack(currentTrack);
+      }
+    });
+
+    bpCopyBtn.addEventListener('click', () => {
+      if (currentTrack) copyLink(currentTrack);
+    });
+
+    previewAudio.addEventListener('ended', () => setPlayerState(false));
+
+    async function searchTracks(query) {
+      if (!query || !query.trim()) return;
+      const cleanQ = query.trim();
+      const spinner = document.getElementById('loaderSpinner');
+      const resultsWrap = document.getElementById('resultsWrap');
+      const resultsList = document.getElementById('resultsList');
+      const resultsHeader = document.getElementById('resultsHeader');
+
+      spinner.style.display = 'block';
+      resultsWrap.style.display = 'none';
+      resultsList.innerHTML = '';
+
+      const isDirectYt = !!extractYouTubeId(cleanQ);
+
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(cleanQ)}`);
+        const data = await res.json();
+        spinner.style.display = 'none';
+
+        if (!data.results || data.results.length === 0) {
+          resultsHeader.textContent = `No results found for "${cleanQ}"`;
+          resultsWrap.style.display = 'block';
+          return;
+        }
+
+        if (isDirectYt) {
+          resultsHeader.innerHTML = `<span>YouTube Video Found</span> <span class="source-tag"><svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg> YouTube</span>`;
+        } else {
+          resultsHeader.textContent = `Results for "${cleanQ}" (${data.results.length} found)`;
+        }
+        resultsWrap.style.display = 'block';
+
+        data.results.forEach(track => {
+          const card = document.createElement('div');
+          card.className = 'track-card';
+          card.id = `card-${track.id}`;
+
+          const trackJson = JSON.stringify(track).replace(/'/g, "&#39;");
+          const isYt = (track.album === 'YouTube' || (track.url && track.url.includes('youtube.com')));
+
+          card.innerHTML = `
+            <div class="card-thumb-wrap" onclick='playTrack(${trackJson})'>
+              <img src="${escapeHtml(track.thumbnail)}" alt="${escapeHtml(track.title)}" class="card-thumb" onerror="if(this.src!=='https://i.ytimg.com/vi/${track.id}/hqdefault.jpg')this.src='https://i.ytimg.com/vi/${track.id}/hqdefault.jpg'" loading="lazy">
+              <div class="thumb-play-overlay">
+                <svg viewBox="0 0 24 24"><polygon points="8 5 19 12 8 19 8 5"/></svg>
+              </div>
+            </div>
+            <div class="card-info">
+              <div class="card-title">${escapeHtml(track.title)}</div>
+              <div class="card-artist">
+                <span>${escapeHtml(track.artist)}</span>
+                <span class="card-dur">• ${fmtTime(track.duration)}</span>
+                ${isYt ? '<span class="source-tag"><svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg> YouTube</span>' : ''}
+              </div>
+            </div>
+            <div class="card-actions">
+              <button class="btn-card btn-card-primary" onclick='playTrack(${trackJson})'>
+                <svg viewBox="0 0 24 24"><polygon points="7 4 20 12 7 20 7 4"/></svg>
+                <span>Play</span>
+              </button>
+              <button class="btn-card btn-card-secondary" onclick='copyLink(${trackJson})' title="Copy Share Link">
+                <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                <span>Copy Link</span>
+              </button>
+              <a href="${buildShareUrl(track)}" target="_blank" class="btn-card btn-card-secondary" title="Open in Full Player">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+              </a>
+            </div>
+          `;
+          resultsList.appendChild(card);
+        });
+
+      } catch (err) {
+        spinner.style.display = 'none';
+        resultsHeader.textContent = 'An error occurred while searching. Please try again.';
+        resultsWrap.style.display = 'block';
+      }
+    }
+
+    document.getElementById('searchForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const q = searchInput.value;
+      searchTracks(q);
+    });
+
+    searchInput.addEventListener('input', () => {
+      const val = searchInput.value.trim();
+      btnClear.style.display = val ? 'flex' : 'none';
+
+      if (val.includes('youtu.be') || val.includes('youtube.com')) {
+        clearTimeout(window.__ytDebounce);
+        window.__ytDebounce = setTimeout(() => {
+          if (extractYouTubeId(val)) {
+            showToast('YouTube link detected! Fetching video...');
+            searchTracks(val);
+          }
+        }, 350);
+      }
+    });
+
+    searchInput.addEventListener('paste', (e) => {
+      const text = (e.clipboardData || window.clipboardData).getData('text');
+      if (text && extractYouTubeId(text)) {
+        showToast('YouTube link detected! Fetching video...');
+        setTimeout(() => {
+          searchTracks(text.trim());
+        }, 120);
+      }
+    });
+
+    btnClear.addEventListener('click', () => {
+      searchInput.value = '';
+      btnClear.style.display = 'none';
+      searchInput.focus();
+    });
+
+    function quickSearch(q) {
+      searchInput.value = q;
+      btnClear.style.display = 'flex';
+      searchTracks(q);
+    }
+
+    // Auto-search if ?q= parameter is in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialQuery = urlParams.get('q');
+    if (initialQuery) {
+      searchInput.value = initialQuery;
+      btnClear.style.display = 'flex';
+      searchTracks(initialQuery);
+    }
+  </script>
+</body>
+</html>
