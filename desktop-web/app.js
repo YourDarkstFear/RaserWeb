@@ -4339,7 +4339,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!meta.title || !meta.artist) return;
     const dur = typeof getReliableTrackDuration === 'function' ? getReliableTrackDuration() : (track.duration || 0);
     try {
-      const r = await fetch('http://127.0.0.1:' + (state.serverPort || 38472) + '/api/lastfm/now-playing', {
+      const r = await fetch(((window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + (state.serverPort || 38472) : window.location.origin) + '/api/lastfm/now-playing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -4366,7 +4366,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!meta.title || !meta.artist) return;
     const dur = typeof getReliableTrackDuration === 'function' ? getReliableTrackDuration() : (track.duration || 0);
     try {
-      const r = await fetch('http://127.0.0.1:' + (state.serverPort || 38472) + '/api/lastfm/scrobble', {
+      const r = await fetch(((window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + (state.serverPort || 38472) : window.location.origin) + '/api/lastfm/scrobble', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -5715,7 +5715,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (missing.length > 0) {
       try {
         const port = state.serverPort || 38472;
-        const res = await fetch(`http://127.0.0.1:${port}/api/i18n-batch`, {
+        const res = await fetch(`${(window.electronAPI && (typeof port !== "undefined" ? port : state.serverPort)) ? "http://127.0.0.1:" + (typeof port !== "undefined" ? port : state.serverPort) : window.location.origin}/api/i18n-batch`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ target: lang, texts: missing })
@@ -7998,7 +7998,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const sameArtist = [];
     const artistJobs = ordered.slice(0, 4).map(name =>
-      fetchJson(`http://127.0.0.1:${port}/api/artist?name=${encodeURIComponent(name)}`, null, 8000)
+      fetchJson(`${(window.electronAPI && (typeof port !== "undefined" ? port : state.serverPort)) ? "http://127.0.0.1:" + (typeof port !== "undefined" ? port : state.serverPort) : window.location.origin}/api/artist?name=${encodeURIComponent(name)}`, null, 8000)
         .then(data => (data && data.success && data.artist && Array.isArray(data.artist.tracks)) ? data.artist.tracks : [])
         .catch(() => [])
     );
@@ -8016,7 +8016,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let wave = [];
     try {
       const taste = await computeTasteProfile();
-      const data = await fetchJson(`http://127.0.0.1:${port}/api/vibe`, {
+      const data = await fetchJson(`${(window.electronAPI && (typeof port !== "undefined" ? port : state.serverPort)) ? "http://127.0.0.1:" + (typeof port !== "undefined" ? port : state.serverPort) : window.location.origin}/api/vibe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -10293,12 +10293,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       const data = await res.json();
       if (state.searchToken !== searchToken) return;
 
-      if (!data.success || !data.tracks) {
+      if (!data.success || (!data.tracks && !data.results)) {
         if (state.platform === 'ytmusic') showToast('YouTube Music is unavailable');
         throw new Error(data.error || 'Failed to load search results');
       }
 
-      data.tracks = rankSearchTracks(query, data.tracks);
+      data.tracks = rankSearchTracks(query, data.tracks || data.results || []);
       state.searchResults = data.tracks;
       state.searchOffset = data.tracks.length;
       state.searchHasMore = !!data.hasMore;
@@ -10418,7 +10418,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!track) return '';
     const port = state.serverPort || 38472;
     try {
-      const streamInfoUrl = `http://127.0.0.1:${port}/api/stream-info?url=${encodeURIComponent(track.url || '')}&id=${encodeURIComponent(track.id || '')}&platform=${encodeURIComponent(track.platform || state.platform || 'youtube')}&title=${encodeURIComponent(track.title || '')}&artist=${encodeURIComponent(track.artist || '')}&duration=${encodeURIComponent(track.duration || 0)}&forShare=1`;
+      const streamInfoUrl = `${(window.electronAPI && (typeof port !== "undefined" ? port : state.serverPort)) ? "http://127.0.0.1:" + (typeof port !== "undefined" ? port : state.serverPort) : window.location.origin}/api/stream-info?url=${encodeURIComponent(track.url || '')}&id=${encodeURIComponent(track.id || '')}&platform=${encodeURIComponent(track.platform || state.platform || 'youtube')}&title=${encodeURIComponent(track.title || '')}&artist=${encodeURIComponent(track.artist || '')}&duration=${encodeURIComponent(track.duration || 0)}&forShare=1`;
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 4500);
       const response = await fetch(streamInfoUrl, { signal: ctrl.signal });
@@ -10905,7 +10905,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     const updated = state.localTracks || state.localFiles || [];
 
-    fetch('http://127.0.0.1:' + state.serverPort + '/api/library-remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: tracksToRemove.map(t => t?.id).filter(Boolean), clearAll: (state.localFiles || []).length === 0 }) }).catch(() => {});
+    fetch(((window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin) + '/api/library-remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: tracksToRemove.map(t => t?.id).filter(Boolean), clearAll: (state.localFiles || []).length === 0 }) }).catch(() => {});
 
     try {
       const removedBlacklist = safeJson('riff_removed_local_paths', []);
@@ -17450,7 +17450,7 @@ function bindCoverHoldZoom(wrapEl) {
       };
 
       const port = state.serverPort || 38472;
-      fetch(`http://127.0.0.1:${port}/api/proxy-config`, {
+      fetch(`${(window.electronAPI && (typeof port !== "undefined" ? port : state.serverPort)) ? "http://127.0.0.1:" + (typeof port !== "undefined" ? port : state.serverPort) : window.location.origin}/api/proxy-config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -17613,7 +17613,7 @@ function bindCoverHoldZoom(wrapEl) {
         showToast('Testing proxy connection...');
         try {
           const port = state.serverPort || 38472;
-          const res = await fetch(`http://127.0.0.1:${port}/api/proxy-test`, {
+          const res = await fetch(`${(window.electronAPI && (typeof port !== "undefined" ? port : state.serverPort)) ? "http://127.0.0.1:" + (typeof port !== "undefined" ? port : state.serverPort) : window.location.origin}/api/proxy-test`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ proxyUrl: activeProxy.url })
@@ -19748,7 +19748,7 @@ function bindCoverHoldZoom(wrapEl) {
       }
       try {
         const port = state.serverPort || 38472;
-        const res = await fetch(`http://127.0.0.1:${port}/api/lastfm/token`, {
+        const res = await fetch(`${(window.electronAPI && (typeof port !== "undefined" ? port : state.serverPort)) ? "http://127.0.0.1:" + (typeof port !== "undefined" ? port : state.serverPort) : window.location.origin}/api/lastfm/token`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -19773,7 +19773,7 @@ function bindCoverHoldZoom(wrapEl) {
         const token = data.token;
         lastfmState.pollTimer = setInterval(async () => {
           try {
-            const sRes = await fetch(`http://127.0.0.1:${port}/api/lastfm/session`, {
+            const sRes = await fetch(`${(window.electronAPI && (typeof port !== "undefined" ? port : state.serverPort)) ? "http://127.0.0.1:" + (typeof port !== "undefined" ? port : state.serverPort) : window.location.origin}/api/lastfm/session`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -19841,7 +19841,7 @@ function bindCoverHoldZoom(wrapEl) {
 
       try {
         const port = state.serverPort || 38472;
-        const res = await fetch(`http://127.0.0.1:${port}/api/lastfm/mobile-session`, {
+        const res = await fetch(`${(window.electronAPI && (typeof port !== "undefined" ? port : state.serverPort)) ? "http://127.0.0.1:" + (typeof port !== "undefined" ? port : state.serverPort) : window.location.origin}/api/lastfm/mobile-session`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -25076,7 +25076,7 @@ function bindCoverHoldZoom(wrapEl) {
 
     try {
       const port = state.serverPort || 38472;
-      const res = await fetch(`http://127.0.0.1:${port}/api/trending`);
+      const res = await fetch(`${(window.electronAPI && (typeof port !== "undefined" ? port : state.serverPort)) ? "http://127.0.0.1:" + (typeof port !== "undefined" ? port : state.serverPort) : window.location.origin}/api/trending`);
       const data = await res.json();
       if (data && data.success && Array.isArray(data.tracks) && data.tracks.length > 0) {
         if (window.HomeCache) {

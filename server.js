@@ -320,6 +320,25 @@ function searchITunes(query) {
   });
 }
 
+function formatTrack(t) {
+  if (!t) return null;
+  const d = Math.max(1, parseInt(t.duration, 10) || 180);
+  const m = Math.floor(d / 60);
+  const s = d % 60;
+  return {
+    id: t.id,
+    title: t.title || 'Unknown Title',
+    artist: t.artist || 'Unknown Artist',
+    album: t.album || '',
+    duration: d,
+    durationFormatted: `${m}:${s < 10 ? '0' : ''}${s}`,
+    thumbnail: t.thumbnail || `https://i.ytimg.com/vi/${t.id}/hqdefault.jpg`,
+    url: t.url || `https://www.youtube.com/watch?v=${t.id}`,
+    platform: t.platform || 'ytmusic',
+    isCached: false
+  };
+}
+
 const server = http.createServer(async (req, res) => {
   const reqUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = reqUrl.pathname;
@@ -441,8 +460,9 @@ const server = http.createServer(async (req, res) => {
       try {
         const ytTrack = await fetchYouTubeOEmbed(directYtId);
         if (ytTrack) {
+          const formatted = [formatTrack(ytTrack)].filter(Boolean);
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, results: [ytTrack] }));
+          res.end(JSON.stringify({ success: true, tracks: formatted, results: formatted, hasMore: false }));
           return;
         }
       } catch (_) {}
@@ -450,7 +470,7 @@ const server = http.createServer(async (req, res) => {
 
     if (!q) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, results: [] }));
+      res.end(JSON.stringify({ success: true, tracks: [], results: [], hasMore: false }));
       return;
     }
 
@@ -459,13 +479,42 @@ const server = http.createServer(async (req, res) => {
       if (!results || results.length === 0) {
         results = await searchITunes(q);
       }
+      const formatted = (results || []).map(formatTrack).filter(Boolean);
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, results }));
+      res.end(JSON.stringify({ success: true, tracks: formatted, results: formatted, hasMore: false }));
     } catch (err) {
       const fallback = await searchITunes(q);
+      const formatted = (fallback || []).map(formatTrack).filter(Boolean);
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, results: fallback }));
+      res.end(JSON.stringify({ success: true, tracks: formatted, results: formatted, hasMore: false }));
     }
+    return;
+  }
+
+  // Trending tracks endpoint: /api/trending
+  if (pathname === '/api/trending') {
+    try {
+      let results = await searchYouTubeMusic('top hits 2026');
+      if (!results || results.length === 0) results = await searchITunes('top hits 2026');
+      const formatted = (results || []).map(formatTrack).filter(Boolean);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, tracks: formatted, hasMore: false }));
+    } catch (e) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, tracks: [], hasMore: false }));
+    }
+    return;
+  }
+
+  // Artist & Vibe endpoints
+  if (pathname === '/api/artist') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, tracks: [], albums: [], topTracks: [] }));
+    return;
+  }
+  if (pathname === '/api/vibe') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, tracks: [] }));
     return;
   }
 
