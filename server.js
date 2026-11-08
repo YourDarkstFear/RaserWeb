@@ -6,25 +6,33 @@ const url = require('url');
 const crypto = require('crypto');
 const { execFile } = require('child_process');
 
-const streamCache = new Map(); // id -> { url, expireAt }
+const streamCache = new Map(); // key -> { url, expireAt }
 
-function resolveAudioStream(id) {
+const keepAliveHttpsAgent = new https.Agent({ keepAlive: true, maxSockets: 64, timeout: 60000 });
+const keepAliveHttpAgent = new http.Agent({ keepAlive: true, maxSockets: 64, timeout: 60000 });
+
+function resolveAudioStream(target) {
   return new Promise((resolve, reject) => {
-    if (!id || !/^[\w-]{11}$/.test(id)) {
-      return reject(new Error('Invalid video id'));
+    if (!target || typeof target !== 'string') {
+      return reject(new Error('Invalid target for audio stream'));
     }
-    const cached = streamCache.get(id);
+    const cleanTarget = target.trim();
+    const isId = /^[\w-]{11}$/.test(cleanTarget);
+    const targetUrl = isId ? `https://www.youtube.com/watch?v=${cleanTarget}` : cleanTarget;
+    const cacheKey = cleanTarget;
+
+    const cached = streamCache.get(cacheKey);
     if (cached && cached.expireAt > Date.now()) {
       return resolve(cached.url);
     }
 
-    execFile('yt-dlp', ['-g', '-f', '140/ba/b', `https://www.youtube.com/watch?v=${id}`], { timeout: 15000 }, (err, stdout) => {
+    execFile('yt-dlp', ['-g', '-f', '140/ba/b', targetUrl], { timeout: 20000 }, (err, stdout) => {
       if (err) {
-        execFile('yt-dlp', ['-g', `https://www.youtube.com/watch?v=${id}`], { timeout: 15000 }, (fErr, fOut) => {
-          if (fErr) return reject(new Error('Failed to resolve audio stream'));
+        execFile('yt-dlp', ['-g', targetUrl], { timeout: 20000 }, (fErr, fOut) => {
+          if (fErr) return reject(new Error('Failed to resolve audio stream: ' + (fErr.message || 'extraction error')));
           const streamUrl = (fOut || '').trim().split('\n')[0];
           if (streamUrl) {
-            streamCache.set(id, { url: streamUrl, expireAt: Date.now() + 3600000 });
+            streamCache.set(cacheKey, { url: streamUrl, expireAt: Date.now() + 3600000 });
             return resolve(streamUrl);
           }
           reject(new Error('No stream found'));
@@ -33,13 +41,116 @@ function resolveAudioStream(id) {
       }
       const streamUrl = (stdout || '').trim().split('\n')[0];
       if (streamUrl) {
-        streamCache.set(id, { url: streamUrl, expireAt: Date.now() + 7200000 });
+        streamCache.set(cacheKey, { url: streamUrl, expireAt: Date.now() + 7200000 });
         resolve(streamUrl);
       } else {
         reject(new Error('No stream URL extracted'));
       }
     });
   });
+}
+
+function handleAudioProxy(req, res, targetUrl, redirectsLeft = 5) {
+  if (!targetUrl) {
+    res.writeHead(400, { 'Access-Control-Allow-Origin': '*' });
+    return res.end('Missing url');
+  }
+  let parsed;
+  try {
+    parsed = new URL(targetUrl);
+  } catch (e) {
+    res.writeHead(400, { 'Access-Control-Allow-Origin': '*' });
+    return res.end('Invalid url');
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    res.writeHead(400, { 'Access-Control-Allow-Origin': '*' });
+    return res.end('Unsupported protocol');
+  }
+  const hostLower = (parsed.hostname || '').toLowerCase();
+  if (hostLower === 'localhost' || hostLower === '127.0.0.1' || hostLower === '::1') {
+    res.writeHead(403, { 'Access-Control-Allow-Origin': '*' });
+    return res.end('Blocked target');
+  }
+
+  const client = parsed.protocol === 'https:' ? https : http;
+  const forward = { host: parsed.host };
+  for (const key of ['range', 'accept', 'accept-language']) {
+    if (req.headers[key] !== undefined) forward[key] = req.headers[key];
+  }
+
+  if (hostLower.endsWith('googlevideo.com')) {
+    if (!forward['range']) {
+      forward['range'] = 'bytes=0-';
+    }
+    forward['origin'] = 'https://www.youtube.com';
+    forward['referer'] = 'https://www.youtube.com/';
+    const cParam = (parsed.searchParams.get('c') || '').toUpperCase();
+    if (cParam === 'IOS') {
+      forward['user-agent'] = 'com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)';
+    } else if (cParam === 'ANDROID_VR') {
+      forward['user-agent'] = 'com.google.android.apps.youtube.vr.oculus/1.61.48 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip';
+    } else if (cParam === 'ANDROID_MUSIC') {
+      forward['user-agent'] = 'com.google.android.apps.youtube.music/7.27.52 (Linux; U; Android 14; en_US; sdk_gphone64_x86_64 Build/UE1A.230829.036) gzip';
+    } else if (cParam.startsWith('ANDROID')) {
+      forward['user-agent'] = 'com.google.android.youtube/19.44.38 (Linux; U; Android 14; en_US; sdk_gphone64_x86_64 Build/UE1A.230829.036) gzip';
+    } else {
+      forward['user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36';
+    }
+  } else {
+    forward['user-agent'] = req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+  }
+
+  const proxyReq = client.request(targetUrl, {
+    method: req.method,
+    family: 4,
+    agent: parsed.protocol === 'https:' ? keepAliveHttpsAgent : keepAliveHttpAgent,
+    headers: forward
+  }, (proxyRes) => {
+    if (res.writableEnded) {
+      proxyRes.destroy();
+      return;
+    }
+    if ([301, 302, 303, 307, 308].includes(proxyRes.statusCode) && proxyRes.headers.location && redirectsLeft > 0) {
+      proxyRes.resume();
+      const nextUrl = new URL(proxyRes.headers.location, targetUrl).toString();
+      return handleAudioProxy(req, res, nextUrl, redirectsLeft - 1);
+    }
+    if (proxyRes.statusCode >= 400) {
+      proxyRes.resume();
+      res.writeHead(502, { 'Access-Control-Allow-Origin': '*' });
+      return res.end('Upstream error');
+    }
+    const outHeaders = Object.assign({}, proxyRes.headers);
+    delete outHeaders['access-control-allow-origin'];
+    delete outHeaders['Access-Control-Allow-Origin'];
+    delete outHeaders['access-control-allow-credentials'];
+    delete outHeaders['x-frame-options'];
+    outHeaders['Access-Control-Allow-Origin'] = '*';
+    outHeaders['Access-Control-Allow-Headers'] = '*';
+    outHeaders['Access-Control-Expose-Headers'] = 'Content-Length, Content-Range, Accept-Ranges';
+
+    res.writeHead(proxyRes.statusCode || 200, outHeaders);
+    proxyRes.on('error', () => {
+      try { res.destroy(); } catch (e) {}
+    });
+    proxyRes.pipe(res);
+  });
+
+  proxyReq.setTimeout(30000, () => {
+    proxyReq.destroy(new Error('Proxy request timed out'));
+  });
+  proxyReq.on('error', (err) => {
+    if (!res.headersSent) {
+      res.writeHead(502, { 'Access-Control-Allow-Origin': '*' });
+      res.end('Proxy error: ' + err.message);
+    }
+  });
+
+  if (req.method === 'POST' || req.method === 'PUT') {
+    req.pipe(proxyReq);
+  } else {
+    proxyReq.end();
+  }
 }
 
 const PORT = process.env.PORT || 3850;
@@ -425,6 +536,46 @@ function searchITunes(query) {
   });
 }
 
+function searchSoundcloud(query, limit = 14) {
+  return new Promise((resolve) => {
+    if (!query) return resolve([]);
+    const args = [
+      `scsearch${limit}:${query}`,
+      '--dump-single-json',
+      '--flat-playlist',
+      '--skip-download',
+      '--no-warnings',
+      '--no-check-certificates'
+    ];
+    execFile('yt-dlp', args, { timeout: 18000 }, (err, stdout) => {
+      if (err || !stdout) return resolve([]);
+      try {
+        const data = JSON.parse(stdout);
+        const entries = (data.entries || []).map((item) => {
+          let thumbnail = '';
+          if (item.thumbnails && item.thumbnails.length > 0) {
+            thumbnail = item.thumbnails[item.thumbnails.length - 1].url;
+          } else if (item.thumbnail) {
+            thumbnail = item.thumbnail;
+          }
+          return {
+            id: String(item.id || Math.random().toString(36).substring(2)),
+            title: item.title || 'Untitled',
+            artist: item.uploader || item.channel || item.artist || 'Unknown Artist',
+            duration: item.duration || 0,
+            thumbnail: thumbnail,
+            url: item.webpage_url || item.url || '',
+            platform: 'soundcloud'
+          };
+        });
+        resolve(entries);
+      } catch (_) {
+        resolve([]);
+      }
+    });
+  });
+}
+
 function formatTrack(t) {
   if (!t) return null;
   const d = Math.max(1, parseInt(t.duration, 10) || 180);
@@ -551,6 +702,7 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/search') {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     const q = (reqUrl.searchParams.get('q') || '').trim();
+    const platform = (reqUrl.searchParams.get('platform') || 'ytmusic').toLowerCase();
 
     // Direct YouTube link / video ID detection
     let directYtId = extractYouTubeId(q);
@@ -579,6 +731,16 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (platform === 'soundcloud') {
+      try {
+        const scResults = await searchSoundcloud(q, 14);
+        const formatted = (scResults || []).map(formatTrack).filter(Boolean);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, tracks: formatted, results: formatted, hasMore: false }));
+        return;
+      } catch (_) {}
+    }
+
     try {
       let results = await searchYouTubeMusic(q);
       if (!results || results.length === 0) {
@@ -597,7 +759,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Trending tracks endpoint: /api/trending
-  if (pathname === '/api/trending') {
+  if (pathname === '/api/trending' || pathname === '/api/hot') {
     try {
       let results = await searchYouTubeMusic('top hits 2026');
       if (!results || results.length === 0) results = await searchITunes('top hits 2026');
@@ -623,19 +785,27 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Audio streaming proxy endpoint
+  if (pathname === '/api/audio-proxy') {
+    const targetUrl = reqUrl.searchParams.get('url') || '';
+    return handleAudioProxy(req, res, targetUrl);
+  }
+
   // Stream resolver endpoint: /api/stream?id=...
   if (pathname === '/api/stream') {
-    const id = (reqUrl.searchParams.get('id') || '').trim();
-    if (!id || !/^[\w-]{11}$/.test(id)) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    const id = (reqUrl.searchParams.get('id') || '').trim() || extractYouTubeId(reqUrl.searchParams.get('url') || '') || (reqUrl.searchParams.get('url') || '').trim();
+    if (!id) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: false, error: 'Invalid video ID' }));
+      res.end(JSON.stringify({ success: false, error: 'Missing track id or url' }));
       return;
     }
 
     try {
-      const streamUrl = await resolveAudioStream(id);
+      const rawStreamUrl = await resolveAudioStream(id);
+      const proxiedUrl = `/api/audio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, streamUrl }));
+      res.end(JSON.stringify({ success: true, streamUrl: proxiedUrl, rawStreamUrl }));
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: false, error: err.message }));
@@ -643,23 +813,30 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Desktop stream info endpoint: /api/stream-info?id=...&url=...
+  // Desktop & Web stream info endpoint: /api/stream-info?id=...&url=...
   if (pathname === '/api/stream-info') {
-    const id = (reqUrl.searchParams.get('id') || '').trim() || extractYouTubeId(reqUrl.searchParams.get('url') || '');
-    if (!id || !/^[\w-]{11}$/.test(id)) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    const reqUrlParam = (reqUrl.searchParams.get('url') || '').trim();
+    const reqIdParam = (reqUrl.searchParams.get('id') || '').trim();
+    const target = reqIdParam || extractYouTubeId(reqUrlParam) || reqUrlParam;
+
+    if (!target) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: false, error: 'Invalid video ID' }));
+      res.end(JSON.stringify({ success: false, error: 'Missing track id or url' }));
       return;
     }
 
     try {
-      const streamUrl = await resolveAudioStream(id);
+      const rawStreamUrl = await resolveAudioStream(target);
+      const proxiedUrl = `/api/audio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         success: true,
-        streamUrl,
-        rawStreamUrl: streamUrl,
-        isHls: false,
+        streamUrl: proxiedUrl,
+        proxyUrl: proxiedUrl,
+        rawStreamUrl: rawStreamUrl,
+        isHls: rawStreamUrl.includes('.m3u8'),
         isLocal: false
       }));
     } catch (err) {
