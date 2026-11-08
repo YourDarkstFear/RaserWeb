@@ -1,5 +1,6 @@
 /**
- * Raser Web Player - Firebase Client & Cloud Sync
+ * Raser Firebase Client & Realtime Cloud Sync
+ * Powered by Firebase Auth & Cloud Firestore
  */
 
 (function () {
@@ -22,17 +23,24 @@
   let currentUser = null;
   let syncTimeout = null;
   let isSyncing = false;
+  let hasPendingSync = false;
   let unsubscribeSnapshot = null;
 
+  // I18N Helper
   function getLang() {
     try {
-      return (localStorage.getItem('raser_ui_lang') || navigator.language || 'tr').toLowerCase();
+      const saved = localStorage.getItem('riff_ui_lang') || localStorage.getItem('raser_ui_lang');
+      if (saved) return saved.toLowerCase();
+      if (typeof navigator !== 'undefined' && navigator.language && navigator.language.toLowerCase().startsWith('tr')) {
+        return 'tr';
+      }
+      return 'en';
     } catch (_) {
-      return 'tr';
+      return 'en';
     }
   }
 
-  const I18N = {
+  const I18N_TEXTS = {
     en: {
       signIn: 'Sign In',
       signOut: 'Sign Out',
@@ -41,27 +49,36 @@
       synced: 'Synced with cloud',
       syncing: 'Syncing...',
       syncFailed: 'Sync failed',
-      guest: 'Guest (Web)',
+      guest: 'Guest',
       loginTitle: 'Sign in to Raser',
       registerTitle: 'Create Raser Account',
-      subtitle: 'Access your playlists, favorites, and music across all devices.',
+      subtitle: 'Seamlessly sync your music, playlists, and favorites across all your devices.',
       loginTab: 'Sign In',
       registerTab: 'Sign Up',
       googleBtn: 'Continue with Google',
-      guestBtn: 'Continue as Guest',
       orDivider: 'or with email',
       emailLabel: 'Email address',
       passwordLabel: 'Password',
       displayNameLabel: 'Display Name',
       forgotPassword: 'Forgot password?',
       resetSent: 'Password reset link sent to your email!',
-      successLogin: 'Welcome back!',
-      successRegister: 'Account created! Your library is ready.',
-      cloudLibrary: 'Cloud Library',
+      successLogin: 'Successfully signed in!',
+      successRegister: 'Account created and library synced!',
+      autoSyncNote: 'Your playlists and listening history sync automatically with the cloud.',
+      statsSummary: 'Cloud Library',
       tracksWord: 'tracks',
       playlistsWord: 'playlists',
       historyWord: 'history',
-      autoSyncNote: 'Changes sync automatically in real-time with the cloud.'
+      guestBtn: 'Anonymous Login',
+      mandatoryLogin: 'Please sign in or create an account to use the desktop app.',
+      enterEmailPass: 'Please enter your email and password.',
+      invalidEmail: 'Invalid email address.',
+      invalidCreds: 'Incorrect email or password.',
+      emailInUse: 'This email is already in use.',
+      weakPass: 'Password must be at least 6 characters.',
+      googleOpened: 'Google sign-in opened in your browser. Please select your account...',
+      googleTimeout: 'Google sign-in timed out.',
+      enterEmailFirst: 'Please enter your email address first.'
     },
     tr: {
       signIn: 'Giriş Yap',
@@ -71,35 +88,45 @@
       synced: 'Bulutla eşitlendi',
       syncing: 'Eşitleniyor...',
       syncFailed: 'Eşitleme başarısız',
-      guest: 'Misafir (Web)',
+      guest: 'Anonim',
       loginTitle: "Raser'a Giriş Yap",
       registerTitle: 'Raser Hesabı Oluştur',
-      subtitle: 'Çalma listelerine ve müziklerine tüm cihazlarından anında ulaş.',
+      subtitle: 'Müziğini, çalma listelerini ve favorilerini tüm cihazlarında anında eşitle.',
       loginTab: 'Giriş Yap',
       registerTab: 'Kayıt Ol',
       googleBtn: 'Google ile Devam Et',
-      guestBtn: 'Misafir Olarak Dinle',
       orDivider: 'veya e-posta ile',
       emailLabel: 'E-posta adresi',
       passwordLabel: 'Şifre',
       displayNameLabel: 'Görünen Ad',
       forgotPassword: 'Şifremi unuttum?',
       resetSent: 'Şifre sıfırlama bağlantısı e-postana gönderildi!',
-      successLogin: 'Hoş geldin!',
-      successRegister: 'Hesabın oluşturuldu! Kütüphanen hazır.',
-      cloudLibrary: 'Buluttaki Kütüphanen',
+      successLogin: 'Başarıyla giriş yapıldı!',
+      successRegister: 'Hesabın oluşturuldu ve müziklerin eşitlendi!',
+      autoSyncNote: 'Çalma listelerin ve geçmişin arka planda otomatik olarak bulutla eşitlenir.',
+      statsSummary: 'Buluttaki Kütüphanen',
       tracksWord: 'şarkı',
       playlistsWord: 'çalma listesi',
       historyWord: 'geçmiş',
-      autoSyncNote: 'Değişiklikler bulutla otomatik ve anlık olarak eşitlenir.'
+      guestBtn: 'Anonim Giriş',
+      mandatoryLogin: 'Masaüstü uygulamasını kullanmak için giriş yapmanız zorunludur.',
+      enterEmailPass: 'Lütfen e-posta ve şifrenizi girin.',
+      invalidEmail: 'Geçersiz e-posta adresi.',
+      invalidCreds: 'E-posta veya şifre hatalı.',
+      emailInUse: 'Bu e-posta adresi zaten kullanımda.',
+      weakPass: 'Şifreniz en az 6 karakter olmalıdır.',
+      googleOpened: 'Tarayıcınızda Google giriş penceresi açıldı. Lütfen hesabınızı seçin...',
+      googleTimeout: 'Google girişi zaman aşımına uğradı.',
+      enterEmailFirst: 'Lütfen önce e-posta adresinizi girin.'
     }
   };
 
-  function t(k) {
+  function t(key) {
     const lang = getLang().startsWith('tr') ? 'tr' : 'en';
-    return (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k;
+    return (I18N_TEXTS[lang] && I18N_TEXTS[lang][key]) || I18N_TEXTS.en[key] || key;
   }
 
+  // Safe localStorage helper
   function getLocalJSON(key, defaultVal) {
     try {
       const v = localStorage.getItem(key);
@@ -115,6 +142,7 @@
     } catch (_) {}
   }
 
+  // Load Firebase SDK dynamically if not loaded
   function loadScript(src) {
     return new Promise((resolve, reject) => {
       const existing = document.querySelector(`script[src="${src}"]`);
@@ -146,25 +174,37 @@
       db = window.firebase.firestore();
 
       auth.onAuthStateChanged(async (user) => {
-        currentUser = user;
-        updateAccountUI();
         if (user) {
+          currentUser = user;
+          updateAccountUI();
           await handleInitialSync(user);
           listenToCloudChanges(user);
         } else {
-          if (unsubscribeSnapshot) {
-            unsubscribeSnapshot();
-            unsubscribeSnapshot = null;
+          // Check if restored from desktop Google auth
+          const savedDesktopUser = getLocalJSON('raser_desktop_user', null);
+          if (savedDesktopUser && savedDesktopUser.uid) {
+            currentUser = savedDesktopUser;
+            updateAccountUI();
+            await handleInitialSync(savedDesktopUser);
+            listenToCloudChanges(savedDesktopUser);
+          } else {
+            currentUser = null;
+            updateAccountUI();
+            if (unsubscribeSnapshot) {
+              unsubscribeSnapshot();
+              unsubscribeSnapshot = null;
+            }
           }
         }
       });
 
       setupStorageListener();
     } catch (e) {
-      console.warn('[WebFirebase] Init warning:', e);
+      console.warn('[RaserFirebase] Init warning:', e);
     }
   }
 
+  // Auto Initial Sync when user signs in
   async function handleInitialSync(user) {
     if (!db || !user) return;
     setSyncStatus('syncing');
@@ -175,10 +215,15 @@
 
       const localPlaylists = getLocalJSON('devsize_playlists', []);
       const localHistory = getLocalJSON('devsize_history', []);
+      const localSettings = {
+        volume: localStorage.getItem('riff_volume') || localStorage.getItem('raser_volume') || '0.5',
+        repeat: localStorage.getItem('riff_repeat') || 'false',
+        shuffle: localStorage.getItem('riff_shuffle') || 'false'
+      };
 
       if (!doc.exists) {
-        // If user already has local items, save to cloud; otherwise create basic skeleton
-        await userDocRef.set({
+        // First time user or cloud is empty: Automatically push all local data (359 songs) to Firestore!
+        const initialData = {
           profile: {
             uid: user.uid,
             displayName: user.displayName || user.email?.split('@')[0] || t('guest'),
@@ -190,32 +235,51 @@
           library: {
             playlists: localPlaylists,
             history: localHistory.slice(0, 100),
+            settings: localSettings,
             updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
           }
-        }, { merge: true });
+        };
+
+        await userDocRef.set(initialData, { merge: true });
         setSyncStatus('synced');
       } else {
+        // Cloud exists: Merge smartly
         const cloudData = doc.data() || {};
         const cloudLib = cloudData.library || {};
         const cloudPlaylists = cloudLib.playlists || [];
         const cloudHistory = cloudLib.history || [];
 
-        if (cloudPlaylists.length > 0) {
+        // If cloud was empty but local has items, upload local items
+        if (cloudPlaylists.length === 0 && localPlaylists.length > 0) {
+          await userDocRef.set({
+            library: {
+              playlists: localPlaylists,
+              history: localHistory.slice(0, 100),
+              settings: localSettings,
+              updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+            }
+          }, { merge: true });
+          setSyncStatus('synced');
+        } else if (cloudPlaylists.length > 0) {
+          // Cloud has items: sync down to local storage
           setLocalJSON('devsize_playlists', cloudPlaylists);
+          if (cloudHistory.length > 0) {
+            setLocalJSON('devsize_history', cloudHistory);
+          }
+          // Notify app renderer to reload playlists/library views
+          window.dispatchEvent(new CustomEvent('raser:cloud-library-updated'));
+          setSyncStatus('synced');
+        } else {
+          setSyncStatus('synced');
         }
-        if (cloudHistory.length > 0) {
-          setLocalJSON('devsize_history', cloudHistory);
-        }
-
-        window.dispatchEvent(new CustomEvent('raser:cloud-library-updated'));
-        setSyncStatus('synced');
       }
     } catch (err) {
-      console.warn('[WebFirebase] Initial sync error:', err);
+      console.warn('[RaserFirebase] Initial sync error (Check Firestore status):', err);
       setSyncStatus('error');
     }
   }
 
+  // Realtime Cloud changes listener
   function listenToCloudChanges(user) {
     if (!db || !user) return;
     if (unsubscribeSnapshot) unsubscribeSnapshot();
@@ -228,9 +292,9 @@
         if (data && data.library) {
           const cloudPlaylists = data.library.playlists;
           if (Array.isArray(cloudPlaylists)) {
-            const cur = JSON.stringify(getLocalJSON('devsize_playlists', []));
-            const fresh = JSON.stringify(cloudPlaylists);
-            if (cur !== fresh) {
+            const currentLocal = JSON.stringify(getLocalJSON('devsize_playlists', []));
+            const newCloud = JSON.stringify(cloudPlaylists);
+            if (currentLocal !== newCloud) {
               setLocalJSON('devsize_playlists', cloudPlaylists);
               window.dispatchEvent(new CustomEvent('raser:cloud-library-updated'));
               updateStatsUI();
@@ -238,11 +302,12 @@
           }
         }
       }, (err) => {
-        console.warn('[WebFirebase] Snapshot error:', err);
+        console.warn('[RaserFirebase] Snapshot error:', err);
       });
     } catch (_) {}
   }
 
+  // Auto debounced sync whenever playlists/favorites change locally
   function triggerAutoSync() {
     if (!currentUser || !db) return;
     setSyncStatus('syncing');
@@ -266,7 +331,7 @@
         setSyncStatus('synced');
         updateStatsUI();
       } catch (err) {
-        console.warn('[WebFirebase] Auto-sync error:', err);
+        console.warn('[RaserFirebase] Auto-sync error:', err);
         setSyncStatus('error');
       } finally {
         isSyncing = false;
@@ -274,6 +339,7 @@
     }, SYNC_DEBOUNCE_MS);
   }
 
+  // Watch for local changes in playlists
   function setupStorageListener() {
     window.addEventListener('storage', (e) => {
       if (e.key === 'devsize_playlists' || e.key === 'devsize_history') {
@@ -281,11 +347,13 @@
       }
     });
 
+    // Custom events dispatched by app.js when mutating playlists
     window.addEventListener('raser:playlist-changed', () => {
       triggerAutoSync();
     });
   }
 
+  // UI Updates & Material You Badges
   function setSyncStatus(status) {
     const dot = document.getElementById('cloud-sync-dot');
     const label = document.getElementById('account-sync-state-label');
@@ -355,6 +423,7 @@
     if (historyEl) historyEl.textContent = `${history.length} ${t('historyWord')}`;
   }
 
+  // Auth Functions exposed to UI
   async function signInWithEmail(email, password) {
     if (!auth) throw new Error('Firebase not initialized');
     return auth.signInWithEmailAndPassword(email.trim(), password);
@@ -369,7 +438,87 @@
     return cred;
   }
 
+  async function handleDesktopAuthPayload(authData) {
+    if (!authData || !authData.uid) return;
+    
+    setLocalJSON('raser_desktop_user', authData);
+    currentUser = {
+      uid: authData.uid,
+      displayName: authData.displayName || authData.email?.split('@')[0] || t('guest'),
+      email: authData.email || '',
+      photoURL: authData.photoURL || '',
+      isAnonymous: false,
+      idToken: authData.idToken
+    };
+
+    if (auth && (authData.googleIdToken || authData.idToken)) {
+      try {
+        const cred = window.firebase.auth.GoogleAuthProvider.credential(
+          authData.googleIdToken || null,
+          authData.googleAccessToken || null
+        );
+        await auth.signInWithCredential(cred);
+      } catch (e) {
+        console.warn('[RaserFirebase] Credential sign-in note:', e.message);
+      }
+    }
+
+    updateAccountUI();
+    showStatus(t('successLogin'), false);
+    
+    await handleInitialSync(currentUser);
+    listenToCloudChanges(currentUser);
+  }
+
   async function signInWithGoogle() {
+    const isDesktop = window.location.protocol === 'file:' || !!window.electronAPI;
+
+    if (isDesktop) {
+      let port = 38472;
+      try {
+        if (window.electronAPI && typeof window.electronAPI.getServerPort === 'function') {
+          port = (await window.electronAPI.getServerPort()) || 38472;
+        } else if (window.state && window.state.serverPort) {
+          port = window.state.serverPort;
+        }
+      } catch (_) {}
+
+      const bridgeUrl = `https://app.raserapp.online/auth-desktop?port=${port}`;
+      if (window.electronAPI && typeof window.electronAPI.openExternal === 'function') {
+        window.electronAPI.openExternal(bridgeUrl);
+      } else {
+        window.open(bridgeUrl, '_blank');
+      }
+
+      showStatus(getLang().startsWith('tr')
+        ? 'Tarayıcınızda Google giriş penceresi açıldı. Lütfen hesabınızı seçin...'
+        : 'Google sign-in opened in your browser. Please select your account...', false);
+
+      return new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 120; // 2 minutes
+        const pollTimer = setInterval(async () => {
+          attempts++;
+          if (attempts > maxAttempts) {
+            clearInterval(pollTimer);
+            return reject(new Error(getLang().startsWith('tr') ? 'Google girişi zaman aşımına uğradı.' : 'Google sign-in timed out.'));
+          }
+
+          try {
+            const checkRes = await fetch(`http://127.0.0.1:${port}/api/desktop-auth-check`);
+            if (checkRes.ok) {
+              const data = await checkRes.json();
+              if (data && data.ready && data.auth) {
+                clearInterval(pollTimer);
+                await handleDesktopAuthPayload(data.auth);
+                return resolve(data.auth);
+              }
+            }
+          } catch (_) {}
+        }, 1000);
+      });
+    }
+
     if (!auth) throw new Error('Firebase not initialized');
     const provider = new window.firebase.auth.GoogleAuthProvider();
     provider.addScope('email');
@@ -383,12 +532,16 @@
   }
 
   async function signOut() {
-    if (!auth) return;
+    localStorage.removeItem('raser_desktop_user');
+    currentUser = null;
+    updateAccountUI();
     if (unsubscribeSnapshot) {
       unsubscribeSnapshot();
       unsubscribeSnapshot = null;
     }
-    await auth.signOut();
+    if (auth) {
+      try { await auth.signOut(); } catch (_) {}
+    }
   }
 
   async function resetPassword(email) {
@@ -396,6 +549,7 @@
     return auth.sendPasswordResetEmail(email.trim());
   }
 
+  // Modal & Event Bindings
   function setupModalEvents() {
     const modal = document.getElementById('raser-account-modal');
     const btnPill = document.getElementById('btn-account-pill');
@@ -412,9 +566,32 @@
     const inputName = document.getElementById('auth-input-name');
     const statusMsg = document.getElementById('auth-status-msg');
     const googleBtn = document.getElementById('btn-google-signin');
-    const guestBtn = document.getElementById('btn-guest-signin');
     const signoutBtn = document.getElementById('btn-signout');
     const forgotBtn = document.getElementById('btn-forgot-password');
+
+    const isDesktop = window.location.protocol === 'file:' || !!window.electronAPI;
+    const guestAuthRow = document.getElementById('guest-auth-row');
+    const guestBtn = document.getElementById('btn-guest-signin');
+
+    if (isDesktop) {
+      guestAuthRow?.classList.add('hidden');
+    } else {
+      guestAuthRow?.classList.remove('hidden');
+      if (guestBtn) {
+        guestBtn.querySelector('span')?.setAttribute('data-i18n', '');
+        guestBtn.querySelector('span') && (guestBtn.querySelector('span').textContent = t('guestBtn'));
+        guestBtn.addEventListener('click', async () => {
+          clearStatus();
+          try {
+            showStatus(t('syncing'), false);
+            await signInGuest();
+            closeModal(true);
+          } catch (err) {
+            showStatus(err.message || 'Guest sign-in error', true);
+          }
+        });
+      }
+    }
 
     let isRegisterMode = false;
 
@@ -432,26 +609,53 @@
       statusMsg.classList.add('hidden');
     }
 
+    function updateModalI18n() {
+      const modalTitle = document.getElementById('account-modal-title');
+      if (modalTitle) modalTitle.textContent = currentUser ? t('account') : (isRegisterMode ? t('registerTitle') : t('loginTitle'));
+      
+      const tabLog = document.getElementById('tab-auth-login');
+      if (tabLog) tabLog.textContent = t('loginTab');
+      
+      const tabReg = document.getElementById('tab-auth-register');
+      if (tabReg) tabReg.textContent = t('registerTab');
+
+      const gBtnSpan = googleBtn?.querySelector('span');
+      if (gBtnSpan) gBtnSpan.textContent = t('googleBtn');
+
+      if (inputName) inputName.placeholder = t('displayNameLabel') + ' (' + (getLang().startsWith('tr') ? 'isteğe bağlı' : 'optional') + ')';
+      if (inputEmail) inputEmail.placeholder = t('emailLabel');
+      if (inputPassword) inputPassword.placeholder = t('passwordLabel');
+
+      if (forgotBtn) forgotBtn.textContent = t('forgotPassword');
+      if (submitBtnLabel) submitBtnLabel.textContent = isRegisterMode ? t('registerTab') : t('loginTab');
+
+      const guestLabel = document.getElementById('btn-guest-signin-label');
+      if (guestLabel) guestLabel.textContent = t('guestBtn');
+
+      if (signoutBtn) signoutBtn.textContent = t('signOut');
+    }
+
     function setAuthMode(register) {
       isRegisterMode = register;
       clearStatus();
+      updateModalI18n();
       if (register) {
         tabRegister?.classList.add('active');
         tabLogin?.classList.remove('active');
         registerNameRow?.classList.remove('hidden');
-        if (submitBtnLabel) submitBtnLabel.textContent = t('registerTab');
       } else {
         tabLogin?.classList.add('active');
         tabRegister?.classList.remove('active');
         registerNameRow?.classList.add('hidden');
-        if (submitBtnLabel) submitBtnLabel.textContent = t('loginTab');
       }
     }
 
     function openModal() {
       if (!modal) return;
       clearStatus();
+      updateModalI18n();
       if (currentUser) {
+        btnClose?.classList.remove('hidden');
         authView?.classList.add('hidden');
         profileView?.classList.remove('hidden');
         const pName = document.getElementById('profile-display-name');
@@ -474,6 +678,11 @@
 
         updateStatsUI();
       } else {
+        if (isDesktop) {
+          btnClose?.classList.add('hidden');
+        } else {
+          btnClose?.classList.remove('hidden');
+        }
         authView?.classList.remove('hidden');
         profileView?.classList.add('hidden');
         setAuthMode(false);
@@ -483,23 +692,41 @@
       requestAnimationFrame(() => modal.classList.add('visible'));
     }
 
-    function closeModal() {
+    function closeModal(force = false) {
       if (!modal) return;
+      if (!force && isDesktop && !currentUser) {
+        showStatus(t('mandatoryLogin'), true);
+        return;
+      }
       modal.classList.remove('visible');
       setTimeout(() => modal.classList.add('hidden'), 200);
     }
 
     if (btnPill) btnPill.addEventListener('click', openModal);
-    if (btnClose) btnClose.addEventListener('click', closeModal);
+    if (btnClose) btnClose.addEventListener('click', () => closeModal(false));
     if (modal) {
       modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
+        if (e.target === modal) {
+          if (isDesktop && !currentUser) {
+            showStatus(t('mandatoryLogin'), true);
+            return;
+          }
+          closeModal();
+        }
       });
     }
+
+    // Auto prompt on startup if not signed in
+    setTimeout(() => {
+      if (!currentUser) {
+        openModal();
+      }
+    }, 700);
 
     if (tabLogin) tabLogin.addEventListener('click', () => setAuthMode(false));
     if (tabRegister) tabRegister.addEventListener('click', () => setAuthMode(true));
 
+    // Submit Auth
     if (submitBtn) {
       submitBtn.addEventListener('click', async () => {
         const email = inputEmail?.value?.trim();
@@ -542,6 +769,7 @@
       });
     }
 
+    // Google Sign-In
     if (googleBtn) {
       googleBtn.addEventListener('click', async () => {
         clearStatus();
@@ -554,18 +782,7 @@
       });
     }
 
-    if (guestBtn) {
-      guestBtn.addEventListener('click', async () => {
-        clearStatus();
-        try {
-          await signInGuest();
-          openModal();
-        } catch (err) {
-          showStatus(err.message || 'Guest sign-in error', true);
-        }
-      });
-    }
-
+    // Sign Out
     if (signoutBtn) {
       signoutBtn.addEventListener('click', async () => {
         try {
@@ -573,11 +790,12 @@
           closeModal();
           updateAccountUI();
         } catch (e) {
-          console.warn('[WebFirebase] Sign out error:', e);
+          console.warn('[RaserFirebase] Sign out error:', e);
         }
       });
     }
 
+    // Forgot Password
     if (forgotBtn) {
       forgotBtn.addEventListener('click', async () => {
         const email = inputEmail?.value?.trim();
@@ -595,6 +813,7 @@
     }
   }
 
+  // Public API
   window.RaserFirebase = {
     init: initFirebase,
     signInWithEmail,
@@ -608,6 +827,7 @@
     t
   };
 
+  // Start initialization when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       initFirebase();

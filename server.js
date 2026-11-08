@@ -106,6 +106,111 @@ function generate7CharCode() {
 
 initLinksStore();
 
+const I18N_DIR = path.join(DATA_DIR, 'i18n');
+try { if (!fs.existsSync(I18N_DIR)) fs.mkdirSync(I18N_DIR, { recursive: true }); } catch (_) {}
+
+const i18nMemory = new Map();
+
+function callTranslate(text, to) {
+  return new Promise((resolve) => {
+    if (!text || !text.trim() || to === 'en') return resolve(text ? text.split('\n') : []);
+    const clients = ['dict-chrome-ex', 'gtx'];
+    let idx = 0;
+    function tryNext() {
+      if (idx >= clients.length) return resolve(null);
+      const c = clients[idx++];
+      const u = `https://translate.googleapis.com/translate_a/single?client=${c}&sl=auto&tl=${encodeURIComponent(to)}&dt=t&q=${encodeURIComponent(text)}`;
+      const req = https.get(u, { headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 8000 }, (res) => {
+        let b = '';
+        res.on('data', chunk => b += chunk);
+        res.on('end', () => {
+          if (res.statusCode !== 200) return tryNext();
+          try {
+            const data = JSON.parse(b);
+            if (data && Array.isArray(data[0])) {
+              const joined = data[0].map(s => s[0]).join('').split('\n');
+              return resolve(joined);
+            }
+          } catch (e) {}
+          tryNext();
+        });
+      });
+      req.on('error', tryNext);
+      req.on('timeout', () => { req.destroy(); tryNext(); });
+    }
+    tryNext();
+  });
+}
+
+async function handleI18nBatch(texts, targetLang) {
+  const lang = (targetLang || 'en').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  if (!i18nMemory.has(lang)) {
+    i18nMemory.set(lang, new Map());
+    const langFile = path.join(I18N_DIR, `${lang}.json`);
+    if (fs.existsSync(langFile)) {
+      try {
+        const parsed = JSON.parse(fs.readFileSync(langFile, 'utf8'));
+        for (const [k, v] of Object.entries(parsed)) {
+          i18nMemory.get(lang).set(k, v);
+        }
+      } catch (_) {}
+    }
+  }
+
+  const dict = i18nMemory.get(lang);
+  if (lang === 'en') {
+    return texts;
+  }
+
+  const missing = [];
+  for (const s of texts) {
+    if (typeof s === 'string' && s.trim() && !dict.has(s) && !missing.includes(s)) {
+      missing.push(s);
+    }
+  }
+
+  if (missing.length > 0) {
+    const chunks = [];
+    let curChunk = [];
+    let curLen = 0;
+    for (const item of missing) {
+      if (curChunk.length > 0 && curLen + item.length + 1 > 1500) {
+        chunks.push(curChunk);
+        curChunk = [];
+        curLen = 0;
+      }
+      curChunk.push(item);
+      curLen += item.length + 1;
+    }
+    if (curChunk.length > 0) chunks.push(curChunk);
+
+    for (const chunk of chunks) {
+      const joined = chunk.join('\n');
+      const translated = await callTranslate(joined, lang);
+      if (translated && translated.length === chunk.length) {
+        for (let i = 0; i < chunk.length; i++) {
+          dict.set(chunk[i], translated[i]);
+        }
+      } else {
+        for (const item of chunk) {
+          const single = await callTranslate(item, lang);
+          if (single && single[0]) {
+            dict.set(item, single[0]);
+          }
+        }
+      }
+    }
+
+    try {
+      const obj = {};
+      for (const [k, v] of dict.entries()) obj[k] = v;
+      fs.writeFile(path.join(I18N_DIR, `${lang}.json`), JSON.stringify(obj, null, 2), () => {});
+    } catch (_) {}
+  }
+
+  return texts.map(s => dict.get(s) || s);
+}
+
 function parseYtmDuration(s) {
   if (!s || typeof s !== 'string') return 0;
   const parts = s.split(':').map(Number);
@@ -566,8 +671,21 @@ const server = http.createServer(async (req, res) => {
 
   // Desktop helper endpoints
   if (pathname === '/api/i18n-batch' || pathname === '/api/translate') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ success: true, translations: {} }));
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const target = payload.target || payload.targetLang || payload.to || 'en';
+        const texts = Array.isArray(payload.texts) ? payload.texts : (payload.text ? [payload.text] : []);
+        const results = await handleI18nBatch(texts, target);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, translations: results }));
+      } catch (e) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, translations: [] }));
+      }
+    });
     return;
   }
   if (pathname === '/api/state' || pathname.startsWith('/api/lastfm')) {

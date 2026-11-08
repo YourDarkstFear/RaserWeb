@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Raser - Google ile Giriş Yap</title>
+  <title>Raser - Google Sign In</title>
   <link rel="icon" type="image/svg+xml" href="/assets/raser.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -152,8 +152,8 @@
     <div class="logo"></div>
     
     <div id="auth-prompt-view">
-      <h1>Raser Masaüstü Girişi</h1>
-      <p class="subtitle">Google hesabınızla giriş yaparak tüm çalma listelerinizi ve müzik geçmişinizi buluta bağlayın.</p>
+      <h1 id="page-title">Raser Desktop Login</h1>
+      <p class="subtitle" id="page-subtitle">Connect with your Google account to sync all your playlists and music history to the cloud.</p>
       
       <button id="btn-signin" class="btn-google">
         <svg width="18" height="18" viewBox="0 0 18 18">
@@ -162,7 +162,7 @@
           <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.347 2.825.957 4.039l3.007-2.332z"/>
           <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
         </svg>
-        <span>Google ile Giriş Yap</span>
+        <span id="btn-google-label">Sign in with Google</span>
       </button>
 
       <div id="status-box" class="status-box"></div>
@@ -170,10 +170,10 @@
 
     <div id="auth-success-view" class="hidden">
       <div class="success-icon">✓</div>
-      <h1>Giriş Başarılı!</h1>
-      <p class="subtitle" id="user-greeting">Masaüstü Raser uygulamasına bağlandınız.</p>
-      <p class="subtitle" style="color: var(--md-sys-color-primary); font-weight: 500;">
-        Bu sekmeyi güvenle kapatıp Raser uygulamasına dönebilirsiniz.
+      <h1 id="success-title">Sign In Successful!</h1>
+      <p class="subtitle" id="user-greeting">Connected to Raser desktop app.</p>
+      <p class="subtitle" id="close-tab-notice" style="color: var(--md-sys-color-primary); font-weight: 500;">
+        You can safely close this tab and return to Raser.
       </p>
     </div>
   </div>
@@ -194,6 +194,45 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const localPort = urlParams.get('port') || '38472';
+    const lang = (urlParams.get('lang') || navigator.language || 'en').toLowerCase().startsWith('tr') ? 'tr' : 'en';
+
+    const I18N = {
+      en: {
+        title: 'Raser Desktop Sign In',
+        sub: 'Connect with your Google account to sync all your playlists and music history to the cloud.',
+        googleBtn: 'Sign in with Google',
+        connecting: 'Transferring session to Raser desktop...',
+        openingPopup: 'Opening Google sign-in window...',
+        successTitle: 'Sign In Successful!',
+        successSub: 'Connected to Raser desktop app.',
+        closeTab: 'You can safely close this tab and return to Raser.',
+        welcome: 'Welcome, ',
+        errorTransfer: 'Could not connect to desktop app. Make sure Raser is running.',
+        errorAuth: 'Google sign-in was cancelled or failed.'
+      },
+      tr: {
+        title: 'Raser Masaüstü Girişi',
+        sub: 'Google hesabınızla giriş yaparak tüm çalma listelerinizi ve müzik geçmişinizi buluta bağlayın.',
+        googleBtn: 'Google ile Giriş Yap',
+        connecting: 'Masaüstü Raser uygulamasına aktarılıyor...',
+        openingPopup: 'Google giriş penceresi açılıyor...',
+        successTitle: 'Giriş Başarılı!',
+        successSub: 'Masaüstü Raser uygulamasına bağlandınız.',
+        closeTab: 'Bu sekmeyi güvenle kapatıp Raser uygulamasına dönebilirsiniz.',
+        welcome: 'Hoş geldin, ',
+        errorTransfer: 'Masaüstü uygulamasına bağlanılamadı. Raser uygulamasının açık olduğundan emin olun.',
+        errorAuth: 'Google girişi iptal edildi veya başarısız oldu.'
+      }
+    };
+
+    const strings = I18N[lang] || I18N.en;
+
+    // Apply translations
+    document.getElementById('page-title').textContent = strings.title;
+    document.getElementById('page-subtitle').textContent = strings.sub;
+    document.getElementById('btn-google-label').textContent = strings.googleBtn;
+    document.getElementById('success-title').textContent = strings.successTitle;
+    document.getElementById('close-tab-notice').textContent = strings.closeTab;
 
     const btnSignIn = document.getElementById('btn-signin');
     const statusBox = document.getElementById('status-box');
@@ -202,7 +241,7 @@
     const userGreeting = document.getElementById('user-greeting');
 
     async function sendAuthToDesktop(user, cred) {
-      statusBox.textContent = 'Masaüstü Raser uygulamasına aktarılıyor...';
+      statusBox.textContent = strings.connecting;
       try {
         const idToken = await user.getIdToken();
         const googleIdToken = (cred && cred.credential && cred.credential.idToken) || '';
@@ -227,21 +266,21 @@
         if (res.ok) {
           promptView.classList.add('hidden');
           successView.classList.remove('hidden');
-          userGreeting.textContent = `Hoş geldin, ${payload.displayName}!`;
+          userGreeting.textContent = `${strings.welcome}${payload.displayName}!`;
           setTimeout(() => {
             try { window.close(); } catch (_) {}
           }, 3000);
         } else {
-          statusBox.textContent = 'Masaüstü uygulamasına bağlanılamadı. Raser uygulamasının açık olduğundan emin olun.';
+          statusBox.textContent = strings.errorTransfer;
         }
       } catch (err) {
         console.error('Desktop transfer error:', err);
-        statusBox.textContent = 'Masaüstü uygulamasına bağlanılamadı. Raser açık mı?';
+        statusBox.textContent = strings.errorTransfer;
       }
     }
 
     btnSignIn.addEventListener('click', async () => {
-      statusBox.textContent = 'Google giriş penceresi açılıyor...';
+      statusBox.textContent = strings.openingPopup;
       try {
         const provider = new firebase.auth.GoogleAuthProvider();
         provider.addScope('email');
@@ -252,7 +291,7 @@
         }
       } catch (err) {
         console.error('Auth error:', err);
-        statusBox.textContent = err.message || 'Google girişi iptal edildi veya başarısız oldu.';
+        statusBox.textContent = err.message || strings.errorAuth;
       }
     });
 

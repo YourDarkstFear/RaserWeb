@@ -29,7 +29,12 @@
   // I18N Helper
   function getLang() {
     try {
-      return (localStorage.getItem('riff_ui_lang') || localStorage.getItem('raser_ui_lang') || 'en').toLowerCase();
+      const saved = localStorage.getItem('riff_ui_lang') || localStorage.getItem('raser_ui_lang');
+      if (saved) return saved.toLowerCase();
+      if (typeof navigator !== 'undefined' && navigator.language && navigator.language.toLowerCase().startsWith('tr')) {
+        return 'tr';
+      }
+      return 'en';
     } catch (_) {
       return 'en';
     }
@@ -64,8 +69,16 @@
       tracksWord: 'tracks',
       playlistsWord: 'playlists',
       historyWord: 'history',
-      guestBtn: 'Continue as Guest (Stay Anonymous)',
-      mandatoryLogin: 'Please sign in or create an account to use the desktop app.'
+      guestBtn: 'Anonymous Login',
+      mandatoryLogin: 'Please sign in or create an account to use the desktop app.',
+      enterEmailPass: 'Please enter your email and password.',
+      invalidEmail: 'Invalid email address.',
+      invalidCreds: 'Incorrect email or password.',
+      emailInUse: 'This email is already in use.',
+      weakPass: 'Password must be at least 6 characters.',
+      googleOpened: 'Google sign-in opened in your browser. Please select your account...',
+      googleTimeout: 'Google sign-in timed out.',
+      enterEmailFirst: 'Please enter your email address first.'
     },
     tr: {
       signIn: 'Giriş Yap',
@@ -75,7 +88,7 @@
       synced: 'Bulutla eşitlendi',
       syncing: 'Eşitleniyor...',
       syncFailed: 'Eşitleme başarısız',
-      guest: 'Misafir',
+      guest: 'Anonim',
       loginTitle: "Raser'a Giriş Yap",
       registerTitle: 'Raser Hesabı Oluştur',
       subtitle: 'Müziğini, çalma listelerini ve favorilerini tüm cihazlarında anında eşitle.',
@@ -95,8 +108,16 @@
       tracksWord: 'şarkı',
       playlistsWord: 'çalma listesi',
       historyWord: 'geçmiş',
-      guestBtn: 'Misafir Olarak Devam Et (Anonim Kal)',
-      mandatoryLogin: 'Masaüstü uygulamasını kullanmak için giriş yapmanız zorunludur.'
+      guestBtn: 'Anonim Giriş',
+      mandatoryLogin: 'Masaüstü uygulamasını kullanmak için giriş yapmanız zorunludur.',
+      enterEmailPass: 'Lütfen e-posta ve şifrenizi girin.',
+      invalidEmail: 'Geçersiz e-posta adresi.',
+      invalidCreds: 'E-posta veya şifre hatalı.',
+      emailInUse: 'Bu e-posta adresi zaten kullanımda.',
+      weakPass: 'Şifreniz en az 6 karakter olmalıdır.',
+      googleOpened: 'Tarayıcınızda Google giriş penceresi açıldı. Lütfen hesabınızı seçin...',
+      googleTimeout: 'Google girişi zaman aşımına uğradı.',
+      enterEmailFirst: 'Lütfen önce e-posta adresinizi girin.'
     }
   };
 
@@ -588,25 +609,51 @@
       statusMsg.classList.add('hidden');
     }
 
+    function updateModalI18n() {
+      const modalTitle = document.getElementById('account-modal-title');
+      if (modalTitle) modalTitle.textContent = currentUser ? t('account') : (isRegisterMode ? t('registerTitle') : t('loginTitle'));
+      
+      const tabLog = document.getElementById('tab-auth-login');
+      if (tabLog) tabLog.textContent = t('loginTab');
+      
+      const tabReg = document.getElementById('tab-auth-register');
+      if (tabReg) tabReg.textContent = t('registerTab');
+
+      const gBtnSpan = googleBtn?.querySelector('span');
+      if (gBtnSpan) gBtnSpan.textContent = t('googleBtn');
+
+      if (inputName) inputName.placeholder = t('displayNameLabel') + ' (' + (getLang().startsWith('tr') ? 'isteğe bağlı' : 'optional') + ')';
+      if (inputEmail) inputEmail.placeholder = t('emailLabel');
+      if (inputPassword) inputPassword.placeholder = t('passwordLabel');
+
+      if (forgotBtn) forgotBtn.textContent = t('forgotPassword');
+      if (submitBtnLabel) submitBtnLabel.textContent = isRegisterMode ? t('registerTab') : t('loginTab');
+
+      const guestLabel = document.getElementById('btn-guest-signin-label');
+      if (guestLabel) guestLabel.textContent = t('guestBtn');
+
+      if (signoutBtn) signoutBtn.textContent = t('signOut');
+    }
+
     function setAuthMode(register) {
       isRegisterMode = register;
       clearStatus();
+      updateModalI18n();
       if (register) {
         tabRegister?.classList.add('active');
         tabLogin?.classList.remove('active');
         registerNameRow?.classList.remove('hidden');
-        if (submitBtnLabel) submitBtnLabel.textContent = t('registerTab');
       } else {
         tabLogin?.classList.add('active');
         tabRegister?.classList.remove('active');
         registerNameRow?.classList.add('hidden');
-        if (submitBtnLabel) submitBtnLabel.textContent = t('loginTab');
       }
     }
 
     function openModal() {
       if (!modal) return;
       clearStatus();
+      updateModalI18n();
       if (currentUser) {
         btnClose?.classList.remove('hidden');
         authView?.classList.add('hidden');

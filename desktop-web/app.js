@@ -530,7 +530,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (lang === 'en') return str;
     const dict = i18nSessionMap.get(lang);
     if (dict && dict.has(str)) return dict.get(str);
-    if (state.serverPort) {
+    if (state.serverPort || !window.electronAPI) {
       fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/i18n-batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -9951,10 +9951,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const cleanErr = String(errMessage || 'Unknown network or extractor error').trim();
     slot.innerHTML = `
       <div class="m3-search-error-box">
-        <div class="m3-search-error-title">Error while fetching tracks. Please report this to GitHub WITH logs / diagnostics.</div>
-        <div class="m3-search-error-detail">${escapeHtml(cleanErr)}</div>
+        <div class="m3-search-error-title">${t('Error while fetching tracks. Please report this to GitHub WITH logs / diagnostics.')}</div>
+        <div class="m3-search-error-detail">${escapeHtml(t(cleanErr))}</div>
         <div style="display:flex;gap:8px;margin-top:4px;">
-          <button type="button" class="btn-pill-primary" id="btn-copy-search-err" style="height:34px;padding:0 16px;font-size:12.5px;">Copy error & diagnostics</button>
+          <button type="button" class="btn-pill-primary" id="btn-copy-search-err" style="height:34px;padding:0 16px;font-size:12.5px;">${t('Copy error & diagnostics')}</button>
         </div>
       </div>
     `;
@@ -26138,7 +26138,7 @@ function bindCoverHoldZoom(wrapEl) {
     if (btnRetry) btnRetry.style.display = 'none';
     if (errEl) errEl.style.display = 'none';
 
-    if (state.serverPort) {
+    if (state.serverPort || !window.electronAPI) {
       fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/tools/install`, { method: 'POST' }).catch(() => {
         fetch(`${(window.electronAPI && state.serverPort) ? "http://127.0.0.1:" + state.serverPort : window.location.origin}/api/tools-install`, { method: 'POST' }).catch(() => {});
       });
