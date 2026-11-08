@@ -393,6 +393,10 @@
       z-index: 10;
       width: 40px;
       height: 40px;
+      min-width: 40px;
+      min-height: 40px;
+      flex-shrink: 0;
+      aspect-ratio: 1 / 1;
       border-radius: 50%;
       background: var(--surface-high);
       color: var(--on-surface-variant);
@@ -430,7 +434,14 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      width: 120px;
+      width: 136px;
+      flex-shrink: 0;
+    }
+
+    #btnMute {
+      flex-shrink: 0;
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
     }
 
     .hidden-player {
@@ -488,6 +499,8 @@
       .btn-icon {
         width: 44px;
         height: 44px;
+        min-width: 44px;
+        min-height: 44px;
       }
     }
 
@@ -511,6 +524,8 @@
       .btn-icon {
         width: 40px;
         height: 40px;
+        min-width: 40px;
+        min-height: 40px;
       }
     }
   </style>
