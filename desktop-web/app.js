@@ -11730,6 +11730,11 @@ function renderClickableArtists(container, rawArtist, hintTrack = null) {
       span.textContent = tok.value;
       span.dataset.artist = tok.value;
       span.addEventListener('click', (e) => {
+        const isMob = window.innerWidth <= 840 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || document.documentElement.classList.contains('is-mobile');
+        if (isMob && container && container.closest('#playbar')) {
+          // On mobile, let playbar click handle opening the Now Playing / lyrics panel!
+          return;
+        }
         e.stopPropagation();
         if (tok.value && tok.value.toLowerCase() !== 'unknown artist') {
           if (el.tvKaraoke && !el.tvKaraoke.classList.contains('hidden') && typeof closeTvKaraoke === 'function') closeTvKaraoke();
@@ -12376,6 +12381,8 @@ function renderClickableArtists(container, rawArtist, hintTrack = null) {
 
   if (el.playbarArtist) {
     el.playbarArtist.addEventListener('click', (e) => {
+      const isMob = window.innerWidth <= 840 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || document.documentElement.classList.contains('is-mobile');
+      if (isMob) return;
       e.stopPropagation();
       if (state.currentTrack && state.currentTrack.artist) {
         openArtistProfile(state.currentTrack.artist);
@@ -17219,7 +17226,7 @@ function bindCoverHoldZoom(wrapEl) {
     ctx.closePath();
     ctx.clip();
     const heroPath = document.getElementById('m3-hero-shape-path');
-    if (heroPath && document.body.classList.contains('m3-hero-covers-on')) {
+    if (heroPath && document.body.classList.contains('m3-hero-covers-on') && !document.body.classList.contains('perf')) {
       const baseScale = (COVER_PX / 2) / 160 * 1.02;
       let heroD = '';
       for (let k = 0; k <= K; k++) {
@@ -17332,10 +17339,15 @@ function bindCoverHoldZoom(wrapEl) {
     updateCoverAnimVisibility();
   });
 
+  function isMobileEnv() {
+    return window.innerWidth <= 840 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || document.documentElement.classList.contains('is-mobile');
+  }
+
   function applyPerfMode(on) {
-    document.body.classList.toggle('perf', !!on);
+    const forced = isMobileEnv() ? true : !!on;
+    document.body.classList.toggle('perf', forced);
     const isWavy = localStorage.getItem('riff_wavy_progress') !== 'false';
-    document.body.classList.toggle('no-wavy', on ? true : !isWavy);
+    document.body.classList.toggle('no-wavy', forced ? true : !isWavy);
     syncBgVideoPlayback();
     applyM3Cover();
   }
@@ -17489,12 +17501,9 @@ function bindCoverHoldZoom(wrapEl) {
   updateTvkVisualizerOpacity(parseInt(localStorage.getItem('riff_tvk_visualizer_opacity') || '85', 10));
 
   const btnPerfMode = document.getElementById('btn-perf-mode');
-  const initialPerfMode = localStorage.getItem('riff_perf_mode') === '1';
+  const initialPerfMode = isMobileEnv() ? true : (localStorage.getItem('riff_perf_mode') === '1');
   applyPerfMode(initialPerfMode);
   document.body.classList.toggle('perf', initialPerfMode);
-  
-
-  
 
   applyReducedMotionSetting();
   localStorage.setItem('riff_perf_mode', initialPerfMode ? '1' : '0');
@@ -17503,6 +17512,13 @@ function bindCoverHoldZoom(wrapEl) {
   updateNavIndicator(true);
   if (btnPerfMode) {
     btnPerfMode.addEventListener('click', () => {
+      if (isMobileEnv()) {
+        btnPerfMode.classList.add('active');
+        localStorage.setItem('riff_perf_mode', '1');
+        applyPerfMode(true);
+        if (typeof showToast === 'function') showToast('Performance mode is locked on mobile for smooth playback', 'info');
+        return;
+      }
       const next = !btnPerfMode.classList.contains('active');
       btnPerfMode.classList.toggle('active', next);
       localStorage.setItem('riff_perf_mode', next ? '1' : '0');
@@ -27023,17 +27039,7 @@ function bindCoverHoldZoom(wrapEl) {
 
   function initSpotifyPromo() {
     const card = document.getElementById('spotify-promo');
-    const btnImport = document.getElementById('btn-spotify-promo-import');
-    const btnClose = document.getElementById('btn-spotify-promo-close');
-    if (!card || !btnImport || !btnClose) return;
-    if (localStorage.getItem('riff_spotify_promo_dismissed') !== '1') card.hidden = false;
-    btnImport.addEventListener('click', () => {
-      if (typeof openSpotifyImportModal === 'function') openSpotifyImportModal();
-    });
-    btnClose.addEventListener('click', () => {
-      card.hidden = true;
-      localStorage.setItem('riff_spotify_promo_dismissed', '1');
-    });
+    if (card) card.remove();
   }
 
   function initQueuePanel() {

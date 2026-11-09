@@ -11418,3 +11418,8 @@ body.perf .np-queue-panel { transition: none; }
   opacity: 1 !important;
 }
 
+.spotify-promo {
+  display: none !important;
+}
+
+

@@ -610,6 +610,14 @@
     line-height: 1.2 !important;
   }
 
+  #playbar .track-meta,
+  #playbar .track-title,
+  #playbar .track-artist,
+  #playbar .artist-link-part,
+  #playbar .artist-sep {
+    pointer-events: none !important;
+  }
+
   /* Right Side: Play/Pause and Next ONLY (No Scrubber, No Clutter) */
   body:not(.np-open) .playbar-left > .btn-icon-pill,
   body:not(.np-open) .playbar-right,
@@ -855,15 +863,15 @@
     align-items: center !important;
     width: 100% !important;
     flex-shrink: 0 !important;
-    margin: 8px 0 16px 0 !important;
+    margin: 4px 0 10px 0 !important;
     position: relative !important;
     z-index: 1 !important;
   }
 
   #cover-container {
-    width: min(72vw, 290px) !important;
-    height: min(72vw, 290px) !important;
-    margin-bottom: 18px !important;
+    width: min(56vw, 230px) !important;
+    height: min(56vw, 230px) !important;
+    margin-bottom: 12px !important;
     position: relative !important;
     touch-action: pan-y !important;
     transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), border-radius 0.3s ease !important;
@@ -1032,11 +1040,17 @@
   /* Lyrics section inside sheet */
   .lyrics-section {
     flex: 1 1 auto !important;
-    min-height: 140px !important;
-    margin-top: 14px !important;
+    min-height: 180px !important;
+    margin-top: 10px !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
-    padding-bottom: 12px !important;
+    padding-bottom: 24px !important;
+    z-index: 2 !important;
+    position: relative !important;
+    text-align: center !important;
+  }
+  .lyrics-container {
+    padding: 10px 0 20px 0 !important;
   }
   .lyric-line {
     font-size: 20px !important;

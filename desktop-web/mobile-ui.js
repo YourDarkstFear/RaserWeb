@@ -247,14 +247,24 @@
     if (window.innerWidth <= 840 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) {
       panel.classList.add('hidden');
       document.body.classList.remove('np-open');
+      document.body.classList.add('perf');
+      localStorage.setItem('riff_perf_mode', '1');
+      if (typeof window.applyPerfMode === 'function') window.applyPerfMode(true);
+      const btnPerf = document.getElementById('btn-perf-mode');
+      if (btnPerf) btnPerf.classList.add('active');
     }
 
     const openSheet = () => {
       panel.classList.remove('hidden');
       document.body.classList.add('np-open');
+      if (window.state) window.state.isRightPanelOpen = true;
       if (typeof window.applyM3Cover === 'function') window.applyM3Cover();
       if (typeof window.m3cStart === 'function') window.m3cStart();
       if (typeof window.resizeCanvases === 'function') window.resizeCanvases();
+      if (typeof window.updateLyricsPadding === 'function') window.updateLyricsPadding();
+      if (typeof window.updateSyncedLyricsHighlight === 'function' && audio) {
+        window.updateSyncedLyricsHighlight(audio.currentTime || 0);
+      }
       window.dispatchEvent(new Event('resize'));
       const pbArt = document.getElementById('playbar-artwork');
       const thumb = (window.state && window.state.currentTrack && window.state.currentTrack.thumbnail) || (pbArt && pbArt.src);
