@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Raser Tech — 10 Minimal SVG Logo Konsepti</title>
+<title>Raser Tech — 20 Minimal SVG Logo Konsepti</title>
 <style>
   :root {
     --bg: #0c0d12;
@@ -28,8 +28,8 @@
   
   .header {
     text-align: center;
-    max-width: 720px;
-    margin-bottom: 32px;
+    max-width: 820px;
+    margin-bottom: 28px;
   }
   .header .tagline-badge {
     display: inline-block;
@@ -54,10 +54,46 @@
     -webkit-text-fill-color: transparent;
   }
   .subtitle {
-    font-size: 16px;
+    font-size: 15px;
     color: var(--text-secondary);
     margin: 0;
     line-height: 1.6;
+  }
+
+  .controls-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 40px;
+    width: 100%;
+    max-width: 900px;
+  }
+
+  .category-tabs {
+    display: flex;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    padding: 5px;
+    border-radius: 999px;
+    gap: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+  .cat-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .cat-btn:hover { color: #fff; }
+  .cat-btn.active {
+    background: var(--accent);
+    color: #12131a;
   }
 
   .controls {
@@ -66,7 +102,6 @@
     align-items: center;
     justify-content: center;
     gap: 12px;
-    margin-bottom: 40px;
     background: var(--card);
     border: 1px solid var(--card-border);
     padding: 10px 20px;
@@ -98,6 +133,27 @@
     transition: background 0.2s ease;
   }
   .bg-toggle:hover { background: rgba(255, 255, 255, 0.12); }
+
+  .section-divider {
+    max-width: 1280px;
+    width: 100%;
+    margin: 40px 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .section-divider h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    white-space: nowrap;
+  }
+  .section-divider .line {
+    height: 1px;
+    background: var(--card-border);
+    flex-grow: 1;
+  }
 
   .grid {
     display: grid;
@@ -260,33 +316,491 @@
   body.light-theme .scale-preview {
     background: #f1f3f8;
   }
-  body.light-theme .concept-title { color: #12131a; }
+  body.light-theme .concept-title, body.light-theme .section-divider h2 { color: #12131a; }
 </style>
 </head>
 <body>
 
 <div class="header">
   <span class="tagline-badge">Rise the world &bull; Rase the future</span>
-  <h1>Raser — 10 Teknoloji Şirketi Logo Konsepti</h1>
+  <h1>Raser — 20 Minimal SVG Logo Konsepti</h1>
   <p class="subtitle">
-    Raser'ı yalnızca bir müzik oynatıcı değil; yeni nesil, güçlü, minimal ve küresel bir ekosistem / teknoloji şirketi (OpenAI, Stripe, Linear, Vercel gibi) olarak konumlandıran sade <strong>SVG</strong> tasarımları.
+    Raser'ı global bir teknoloji şirketi (OpenAI, Stripe, Linear, Vercel gibi) olarak konumlandıran saf vektörel SVG tasarımları.
   </p>
 </div>
 
-<div class="controls">
-  <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-right: 6px;">Renk:</span>
-  <div class="color-dot active" style="background: #F48FB1;" onclick="setColor('#F48FB1', this)" title="Raser Pembe"></div>
-  <div class="color-dot" style="background: #76D1FF;" onclick="setColor('#76D1FF', this)" title="Cyber Cyan"></div>
-  <div class="color-dot" style="background: #D0BCFF;" onclick="setColor('#D0BCFF', this)" title="Quantum Violet"></div>
-  <div class="color-dot" style="background: #80E5A5;" onclick="setColor('#80E5A5', this)" title="Matrix Emerald"></div>
-  <div class="color-dot" style="background: #FFB784;" onclick="setColor('#FFB784', this)" title="Solar Amber"></div>
-  <div class="color-dot" style="background: #FFFFFF;" onclick="setColor('#FFFFFF', this)" title="Monochrome White"></div>
-  
-  <div class="divider"></div>
-  <button class="bg-toggle" onclick="toggleTheme()">Açık / Koyu Arka Plan</button>
+<div class="controls-bar">
+  <!-- Kategori Filtre Butonları -->
+  <div class="category-tabs">
+    <button class="cat-btn active" onclick="filterCat('all', this)">Tümü (20)</button>
+    <button class="cat-btn" onclick="filterCat('abstract', this)">✨ Soyut / Harfsiz (11-20)</button>
+    <button class="cat-btn" onclick="filterCat('monogram', this)">🔤 R Monogram (1-10)</button>
+  </div>
+
+  <div class="controls">
+    <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-right: 6px;">Renk:</span>
+    <div class="color-dot active" style="background: #F48FB1;" onclick="setColor('#F48FB1', this)" title="Raser Pembe"></div>
+    <div class="color-dot" style="background: #76D1FF;" onclick="setColor('#76D1FF', this)" title="Cyber Cyan"></div>
+    <div class="color-dot" style="background: #D0BCFF;" onclick="setColor('#D0BCFF', this)" title="Quantum Violet"></div>
+    <div class="color-dot" style="background: #80E5A5;" onclick="setColor('#80E5A5', this)" title="Matrix Emerald"></div>
+    <div class="color-dot" style="background: #FFB784;" onclick="setColor('#FFB784', this)" title="Solar Amber"></div>
+    <div class="color-dot" style="background: #FFFFFF;" onclick="setColor('#FFFFFF', this)" title="Monochrome White"></div>
+    
+    <div class="divider"></div>
+    <button class="bg-toggle" onclick="toggleTheme()">Açık / Koyu Arka Plan</button>
+  </div>
 </div>
 
-<div class="grid">
+<!-- ========================================================================= -->
+<!-- BÖLÜM 1: SOYUT & HARFSİZ KONSEPTLER (11 - 20) -->
+<!-- ========================================================================= -->
+<div class="section-divider section-abstract-title">
+  <h2>✨ Yeni: Soyut & Harfsiz Teknoloji Sembolleri (R Harfi İçermeyen)</h2>
+  <div class="line"></div>
+</div>
+
+<div class="grid section-abstract">
+
+  <!-- ==================== KONSEPT 11: THE ASCENDING DELTA ==================== -->
+  <div class="card">
+    <div class="card-header">
+      <span class="concept-num">11 &bull; The Ascending Delta</span>
+      <button class="copy-btn" onclick="copySvg(11)">SVG Kopyala</button>
+    </div>
+    <div class="canvas-box">
+      <svg id="svg-11" viewBox="0 0 100 100" fill="none">
+        <!-- Upward Soaring Dual-Blade Chevron / Delta (Elevation & Future) -->
+        <path class="logo-path" fill="var(--accent)" fill-rule="evenodd" clip-rule="evenodd" d="
+          M50 12
+          C52.2 12 54.1 13.3 54.9 15.3
+          L85.9 81.3
+          C87.2 84 85.2 87 82.2 87
+          H63
+          C61 87 59.2 85.8 58.4 84
+          L50 64
+          L41.6 84
+          C40.8 85.8 39 87 37 87
+          H17.8
+          C14.8 87 12.8 84 14.1 81.3
+          L45.1 15.3
+          C45.9 13.3 47.8 12 50 12
+          Z
+          M50 36
+          L37 67
+          H63
+          L50 36
+          Z
+        "/>
+      </svg>
+    </div>
+    <div class="scale-preview">
+      <div class="scale-item">
+        <svg width="16" height="16" viewBox="0 0 100 100"><use href="#svg-11-shape"/></svg>
+        <span class="scale-label">16px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="24" height="24" viewBox="0 0 100 100"><use href="#svg-11-shape"/></svg>
+        <span class="scale-label">24px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="36" height="36" viewBox="0 0 100 100"><use href="#svg-11-shape"/></svg>
+        <span class="scale-label">36px</span>
+      </div>
+    </div>
+    <h3 class="concept-title">The Ascending Delta</h3>
+    <p class="concept-desc">Vercel ve havacılık sadeliğinde göğe fırlayan çift kanatlı delta zirvesi. Doğrudan "Rise" (yükseliş) ve geleceğe ivmelenmeyi simgeler.</p>
+    <div class="tags"><span class="tag">Yükseliş (Rise)</span><span class="tag">Aerodinamik</span><span class="tag">Apex Delta</span></div>
+  </div>
+
+  <!-- ==================== KONSEPT 12: THE HORIZON DAWN ==================== -->
+  <div class="card">
+    <div class="card-header">
+      <span class="concept-num">12 &bull; The Horizon Dawn</span>
+      <button class="copy-btn" onclick="copySvg(12)">SVG Kopyala</button>
+    </div>
+    <div class="canvas-box">
+      <svg id="svg-12" viewBox="0 0 100 100" fill="none">
+        <!-- Rising Core Sun cresting over Planetary Horizon Arc -->
+        <circle class="logo-path" cx="50" cy="40" r="18" fill="var(--accent)"/>
+        <path class="logo-path" fill="var(--accent)" d="
+          M12 76
+          C28 60 72 60 88 76
+          C89.5 78 88 80.5 85.5 80.5
+          H14.5
+          C12 80.5 10.5 78 12 76
+          Z
+        "/>
+      </svg>
+    </div>
+    <div class="scale-preview">
+      <div class="scale-item">
+        <svg width="16" height="16" viewBox="0 0 100 100"><use href="#svg-12-shape"/></svg>
+        <span class="scale-label">16px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="24" height="24" viewBox="0 0 100 100"><use href="#svg-12-shape"/></svg>
+        <span class="scale-label">24px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="36" height="36" viewBox="0 0 100 100"><use href="#svg-12-shape"/></svg>
+        <span class="scale-label">36px</span>
+      </div>
+    </div>
+    <h3 class="concept-title">The Horizon Dawn</h3>
+    <p class="concept-desc">"Rise the world" ifadesinin doğrudan sembolü: Gezegen ufkunun üzerinden yükselen yeni teknolojinin doğuş ışığı. Güçlü, küresel ve akılda kalıcı.</p>
+    <div class="tags"><span class="tag">Dünya Ufku</span><span class="tag">Gündoğumu</span><span class="tag">Küresel Güç</span></div>
+  </div>
+
+  <!-- ==================== KONSEPT 13: THE PARALLAX BARS ==================== -->
+  <div class="card">
+    <div class="card-header">
+      <span class="concept-num">13 &bull; Parallax Bars</span>
+      <button class="copy-btn" onclick="copySvg(13)">SVG Kopyala</button>
+    </div>
+    <div class="canvas-box">
+      <svg id="svg-13" viewBox="0 0 100 100" fill="none">
+        <!-- 3 parallel kinetic angled planes ascending upward (Solana / Stripe style) -->
+        <rect class="logo-path" x="14" y="66" width="56" height="14" rx="7" transform="skewX(-32) translate(14, 0)" fill="var(--accent)"/>
+        <rect class="logo-path" x="22" y="43" width="56" height="14" rx="7" transform="skewX(-32) translate(14, 0)" fill="var(--accent)"/>
+        <rect class="logo-path" x="30" y="20" width="56" height="14" rx="7" transform="skewX(-32) translate(14, 0)" fill="var(--accent)"/>
+      </svg>
+    </div>
+    <div class="scale-preview">
+      <div class="scale-item">
+        <svg width="16" height="16" viewBox="0 0 100 100"><use href="#svg-13-shape"/></svg>
+        <span class="scale-label">16px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="24" height="24" viewBox="0 0 100 100"><use href="#svg-13-shape"/></svg>
+        <span class="scale-label">24px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="36" height="36" viewBox="0 0 100 100"><use href="#svg-13-shape"/></svg>
+        <span class="scale-label">36px</span>
+      </div>
+    </div>
+    <h3 class="concept-title">Parallax Bars</h3>
+    <p class="concept-desc">Yüksek hızlı veri transferi, bulut altyapısı ve ileriye doğru kademeli yükseliş. Stripe ve Solana hissi veren keskin fintech/altyapı estetiği.</p>
+    <div class="tags"><span class="tag">Kinetik Hız</span><span class="tag">Altyapı / Cloud</span><span class="tag">İleri İvme</span></div>
+  </div>
+
+  <!-- ==================== KONSEPT 14: THE QUANTUM NEXUS ==================== -->
+  <div class="card">
+    <div class="card-header">
+      <span class="concept-num">14 &bull; The Quantum Nexus</span>
+      <button class="copy-btn" onclick="copySvg(14)">SVG Kopyala</button>
+    </div>
+    <div class="canvas-box">
+      <svg id="svg-14" viewBox="0 0 100 100" fill="none">
+        <!-- 4 interconnected geometric circular nodes around central core void -->
+        <path class="logo-path" fill="var(--accent)" fill-rule="evenodd" clip-rule="evenodd" d="
+          M50 14
+          C69.88 14 86 30.12 86 50
+          C86 69.88 69.88 86 50 86
+          C30.12 86 14 69.88 14 50
+          C14 30.12 30.12 14 50 14
+          ZM50 26
+          C36.75 26 26 36.75 26 50
+          C26 63.25 36.75 74 50 74
+          C63.25 74 74 63.25 74 50
+          C74 36.75 63.25 26 50 26
+          Z
+        "/>
+        <!-- Central Quantum Core Aperture Slits -->
+        <circle class="logo-path" cx="50" cy="50" r="14" fill="var(--accent)"/>
+        <rect x="46" y="8" width="8" height="84" fill="#0c0d12" class="negative-cut"/>
+        <rect x="8" y="46" width="84" height="8" fill="#0c0d12" class="negative-cut"/>
+      </svg>
+    </div>
+    <div class="scale-preview">
+      <div class="scale-item">
+        <svg width="16" height="16" viewBox="0 0 100 100"><use href="#svg-14-shape"/></svg>
+        <span class="scale-label">16px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="24" height="24" viewBox="0 0 100 100"><use href="#svg-14-shape"/></svg>
+        <span class="scale-label">24px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="36" height="36" viewBox="0 0 100 100"><use href="#svg-14-shape"/></svg>
+        <span class="scale-label">36px</span>
+      </div>
+    </div>
+    <h3 class="concept-title">The Quantum Nexus</h3>
+    <p class="concept-desc">Dört ana teknolojinin (Donanım, Yazılım, Yapay Zeka, Küresel Ağ) merkezde birleştiği kuantum çekirdek. Kararlı, dengeli ve simetrik.</p>
+    <div class="tags"><span class="tag">Kuantum Ağ</span><span class="tag">Çekirdek Simetri</span><span class="tag">Yapay Zeka</span></div>
+  </div>
+
+  <!-- ==================== KONSEPT 15: THE APEX BEACONS ==================== -->
+  <div class="card">
+    <div class="card-header">
+      <span class="concept-num">15 &bull; The Apex Monolith</span>
+      <button class="copy-btn" onclick="copySvg(15)">SVG Kopyala</button>
+    </div>
+    <div class="canvas-box">
+      <svg id="svg-15" viewBox="0 0 100 100" fill="none">
+        <!-- Dual soaring trapezoidal monoliths meeting with micro-slit at apex -->
+        <path class="logo-path" fill="var(--accent)" d="
+          M24 84
+          L44 14
+          C44.8 12.5 47 12.5 47.8 14
+          L47.8 84
+          C47.8 85.1 46.9 86 45.8 86
+          H26
+          C24.5 86 23.5 84.8 24 84
+          Z
+        "/>
+        <path class="logo-path" fill="var(--accent)" d="
+          M76 84
+          L56 14
+          C55.2 12.5 53 12.5 52.2 14
+          L52.2 84
+          C52.2 85.1 53.1 86 54.2 86
+          H74
+          C75.5 86 76.5 84.8 76 84
+          Z
+        "/>
+      </svg>
+    </div>
+    <div class="scale-preview">
+      <div class="scale-item">
+        <svg width="16" height="16" viewBox="0 0 100 100"><use href="#svg-15-shape"/></svg>
+        <span class="scale-label">16px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="24" height="24" viewBox="0 0 100 100"><use href="#svg-15-shape"/></svg>
+        <span class="scale-label">24px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="36" height="36" viewBox="0 0 100 100"><use href="#svg-15-shape"/></svg>
+        <span class="scale-label">36px</span>
+      </div>
+    </div>
+    <h3 class="concept-title">The Apex Monolith</h3>
+    <p class="concept-desc">Gökyüzüne dimdik uzanan ve zirvede incecik lazer yarıkla birbirine bakan iki dev kule. Sarsılmaz mimari güç, altyapı ve teknolojik omurga.</p>
+    <div class="tags"><span class="tag">Kule / Monolit</span><span class="tag">Mimari Güç</span><span class="tag">Zirve</span></div>
+  </div>
+
+  <!-- ==================== KONSEPT 16: THE CYBER SPARK ==================== -->
+  <div class="card">
+    <div class="card-header">
+      <span class="concept-num">16 &bull; The Cyber Spark</span>
+      <button class="copy-btn" onclick="copySvg(16)">SVG Kopyala</button>
+    </div>
+    <div class="canvas-box">
+      <svg id="svg-16" viewBox="0 0 100 100" fill="none">
+        <!-- Iconic 4-point concave geometric tech star (Gemini / Anthropic / AI star) -->
+        <path class="logo-path" fill="var(--accent)" d="
+          M50 10
+          C50 32 68 50 90 50
+          C68 50 50 68 50 90
+          C50 68 32 50 10 50
+          C32 50 50 32 50 10
+          Z
+        "/>
+      </svg>
+    </div>
+    <div class="scale-preview">
+      <div class="scale-item">
+        <svg width="16" height="16" viewBox="0 0 100 100"><use href="#svg-16-shape"/></svg>
+        <span class="scale-label">16px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="24" height="24" viewBox="0 0 100 100"><use href="#svg-16-shape"/></svg>
+        <span class="scale-label">24px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="36" height="36" viewBox="0 0 100 100"><use href="#svg-16-shape"/></svg>
+        <span class="scale-label">36px</span>
+      </div>
+    </div>
+    <h3 class="concept-title">The Cyber Spark</h3>
+    <p class="concept-desc">Yapay zeka, aydınlanma ve yeni fikirlerin kıvılcımı. Günümüzün en prestijli yapay zeka ve yeni nesil teknoloji şirketlerinin evrensel sembolü.</p>
+    <div class="tags"><span class="tag">AI Kıvılcımı</span><span class="tag">Gelecek</span><span class="tag">Evrensel</span></div>
+  </div>
+
+  <!-- ==================== KONSEPT 17: THE KINETIC LOOP ==================== -->
+  <div class="card">
+    <div class="card-header">
+      <span class="concept-num">17 &bull; The Kinetic Loop</span>
+      <button class="copy-btn" onclick="copySvg(17)">SVG Kopyala</button>
+    </div>
+    <div class="canvas-box">
+      <svg id="svg-17" viewBox="0 0 100 100" fill="none">
+        <!-- Modern Infinity / Mobius Loop with dual interlocking energy ribbons -->
+        <path class="logo-path" fill="var(--accent)" fill-rule="evenodd" clip-rule="evenodd" d="
+          M30 26
+          C16.75 26 6 36.75 6 50
+          C6 63.25 16.75 74 30 74
+          C42 74 48 64 50 60
+          C52 64 58 74 70 74
+          C83.25 74 94 63.25 94 50
+          C94 36.75 83.25 26 70 26
+          C58 26 52 36 50 40
+          C48 36 42 26 30 26
+          ZM30 38
+          C23.37 38 18 43.37 18 50
+          C18 56.63 23.37 62 30 62
+          C38 62 44 54 46 50
+          C44 46 38 38 30 38
+          ZM70 38
+          C62 38 56 46 54 50
+          C56 54 62 62 70 62
+          C76.63 62 82 56.63 82 50
+          C82 43.37 76.63 38 70 38
+          Z
+        "/>
+      </svg>
+    </div>
+    <div class="scale-preview">
+      <div class="scale-item">
+        <svg width="16" height="16" viewBox="0 0 100 100"><use href="#svg-17-shape"/></svg>
+        <span class="scale-label">16px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="24" height="24" viewBox="0 0 100 100"><use href="#svg-17-shape"/></svg>
+        <span class="scale-label">24px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="36" height="36" viewBox="0 0 100 100"><use href="#svg-17-shape"/></svg>
+        <span class="scale-label">36px</span>
+      </div>
+    </div>
+    <h3 class="concept-title">The Kinetic Loop</h3>
+    <p class="concept-desc">Sonsuzluk, kesintisiz veri akışı ve döngüsel inovasyon. Meta veya Microsoft ergonomisinde, son derece dengeli ve pürüzsüz çift halka.</p>
+    <div class="tags"><span class="tag">Sonsuzluk</span><span class="tag">Döngüsel İnovasyon</span><span class="tag">Akışkan</span></div>
+  </div>
+
+  <!-- ==================== KONSEPT 18: THE HEX CORE ==================== -->
+  <div class="card">
+    <div class="card-header">
+      <span class="concept-num">18 &bull; The Hex Core</span>
+      <button class="copy-btn" onclick="copySvg(18)">SVG Kopyala</button>
+    </div>
+    <div class="canvas-box">
+      <svg id="svg-18" viewBox="0 0 100 100" fill="none">
+        <!-- Isometric Faceted Tech Hexagon (Decentralized / System Architecture) -->
+        <!-- Top Facet -->
+        <polygon class="logo-path" points="50,14 82,32 50,50 18,32" fill="var(--accent)"/>
+        <!-- Left Facet -->
+        <polygon class="logo-path" points="18,38 47,54 47,88 18,72" fill="var(--accent)" opacity="0.85"/>
+        <!-- Right Facet -->
+        <polygon class="logo-path" points="53,54 82,38 82,72 53,88" fill="var(--accent)" opacity="0.7"/>
+      </svg>
+    </div>
+    <div class="scale-preview">
+      <div class="scale-item">
+        <svg width="16" height="16" viewBox="0 0 100 100"><use href="#svg-18-shape"/></svg>
+        <span class="scale-label">16px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="24" height="24" viewBox="0 0 100 100"><use href="#svg-18-shape"/></svg>
+        <span class="scale-label">24px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="36" height="36" viewBox="0 0 100 100"><use href="#svg-18-shape"/></svg>
+        <span class="scale-label">36px</span>
+      </div>
+    </div>
+    <h3 class="concept-title">The Hex Core</h3>
+    <p class="concept-desc">Üç boyutlu izometrik teknoloji bloğu. Modüler yazılım platformu, blokzincir, sunucu kümesi veya mikroçip donanım mimarisini temsil eder.</p>
+    <div class="tags"><span class="tag">İzometrik Blok</span><span class="tag">Modüler Sistem</span><span class="tag">Donanım/Çip</span></div>
+  </div>
+
+  <!-- ==================== KONSEPT 19: THE ORBITAL GYRO ==================== -->
+  <div class="card">
+    <div class="card-header">
+      <span class="concept-num">19 &bull; The Orbital Gyro</span>
+      <button class="copy-btn" onclick="copySvg(19)">SVG Kopyala</button>
+    </div>
+    <div class="canvas-box">
+      <svg id="svg-19" viewBox="0 0 100 100" fill="none">
+        <!-- 30 deg tilted outer orbital ellipse + central glowing solid beacon -->
+        <ellipse class="logo-path" cx="50" cy="50" rx="42" ry="18" transform="rotate(-30 50 50)" stroke="var(--accent)" stroke-width="10"/>
+        <circle class="logo-path" cx="50" cy="50" r="16" fill="var(--accent)"/>
+      </svg>
+    </div>
+    <div class="scale-preview">
+      <div class="scale-item">
+        <svg width="16" height="16" viewBox="0 0 100 100"><use href="#svg-19-shape"/></svg>
+        <span class="scale-label">16px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="24" height="24" viewBox="0 0 100 100"><use href="#svg-19-shape"/></svg>
+        <span class="scale-label">24px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="36" height="36" viewBox="0 0 100 100"><use href="#svg-19-shape"/></svg>
+        <span class="scale-label">36px</span>
+      </div>
+    </div>
+    <h3 class="concept-title">The Orbital Gyro</h3>
+    <p class="concept-desc">Merkez çekirdek ve çevresinde dönen yörünge elipsi. Tüm cihazları birbirine bağlayan senkronize işletim sistemi ve ekosistem vizyonu.</p>
+    <div class="tags"><span class="tag">Yörünge</span><span class="tag">Senkron Ekosistem</span><span class="tag">Çekirdek Güç</span></div>
+  </div>
+
+  <!-- ==================== KONSEPT 20: THE LASER CONVERGENCE ==================== -->
+  <div class="card">
+    <div class="card-header">
+      <span class="concept-num">20 &bull; Laser Convergence</span>
+      <button class="copy-btn" onclick="copySvg(20)">SVG Kopyala</button>
+    </div>
+    <div class="canvas-box">
+      <svg id="svg-20" viewBox="0 0 100 100" fill="none">
+        <!-- Dual opposing razor chevrons converging into laser focal point (Raser / Laser) -->
+        <path class="logo-path" fill="var(--accent)" d="
+          M14 24
+          L44 50
+          L14 76
+          C12.5 77.5 10 76.5 10 74.5
+          V25.5
+          C10 23.5 12.5 22.5 14 24
+          Z
+        "/>
+        <path class="logo-path" fill="var(--accent)" d="
+          M86 24
+          L56 50
+          L86 76
+          C87.5 77.5 90 76.5 90 74.5
+          V25.5
+          C90 23.5 87.5 22.5 86 24
+          Z
+        "/>
+        <!-- Central vertical hyper-frequency beam -->
+        <rect class="logo-path" x="47" y="16" width="6" height="68" rx="3" fill="var(--accent)"/>
+      </svg>
+    </div>
+    <div class="scale-preview">
+      <div class="scale-item">
+        <svg width="16" height="16" viewBox="0 0 100 100"><use href="#svg-20-shape"/></svg>
+        <span class="scale-label">16px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="24" height="24" viewBox="0 0 100 100"><use href="#svg-20-shape"/></svg>
+        <span class="scale-label">24px</span>
+      </div>
+      <div class="scale-item">
+        <svg width="36" height="36" viewBox="0 0 100 100"><use href="#svg-20-shape"/></svg>
+        <span class="scale-label">36px</span>
+      </div>
+    </div>
+    <h3 class="concept-title">Laser Convergence</h3>
+    <p class="concept-desc">"Raser" isminin laser ve hassasiyet çağrışımı: İki yönden merkeze odaklanan prizmalar ve ortadaki foton ışın çizgisi. Keskin ve kararlı mühendislik.</p>
+    <div class="tags"><span class="tag">Lazer / Foton</span><span class="tag">Hassas Mühendislik</span><span class="tag">Optik Güç</span></div>
+  </div>
+
+</div>
+
+
+<!-- ========================================================================= -->
+<!-- BÖLÜM 2: R HARFİ MONOGRAMLARI (1 - 10) -->
+<!-- ========================================================================= -->
+<div class="section-divider section-monogram-title">
+  <h2>🔤 R Harfi Bazlı Monogram Konseptleri</h2>
+  <div class="line"></div>
+</div>
+
+<div class="grid section-monogram">
 
   <!-- ==================== KONSEPT 1: THE MONOLITH R ==================== -->
   <div class="card">
@@ -296,7 +810,6 @@
     </div>
     <div class="canvas-box">
       <svg id="svg-1" viewBox="0 0 100 100" fill="none">
-        <!-- Monolithic modern R with clean geometric precision -->
         <path class="logo-path" fill="var(--accent)" fill-rule="evenodd" clip-rule="evenodd" d="
           M24 16
           C24 13.79 25.79 12 28 12
@@ -351,7 +864,6 @@
     </div>
     <div class="canvas-box">
       <svg id="svg-2" viewBox="0 0 100 100" fill="none">
-        <!-- Vertical Pillar + 45 deg Forward Rising Vector / Chevron -->
         <rect class="logo-path" x="20" y="16" width="14" height="68" rx="7" fill="var(--accent)"/>
         <path class="logo-path" fill="var(--accent)" d="
           M40 16
@@ -367,7 +879,6 @@
           V16
           Z
         "/>
-        <!-- Rising Forward Ray (Rise the world) -->
         <polygon class="logo-path" points="40,28 62,28 72,40 50,40" fill="#ffffff" opacity="0.35"/>
       </svg>
     </div>
@@ -398,9 +909,7 @@
     </div>
     <div class="canvas-box">
       <svg id="svg-3" viewBox="0 0 100 100" fill="none">
-        <!-- Continuous Superellipse Badge with Negative Space 'r' -->
         <rect class="logo-path" x="12" y="12" width="76" height="76" rx="26" fill="var(--accent)"/>
-        <!-- Precision Cut Negative Space R -->
         <path d="
           M36 30
           H48
@@ -442,11 +951,8 @@
     </div>
     <div class="canvas-box">
       <svg id="svg-4" viewBox="0 0 100 100" fill="none">
-        <!-- Ascending 3-blade futuristic R -->
         <path class="logo-path" fill="var(--accent)" d="M22 14 C22 12 24 10 26 10 H38 C40 10 42 12 42 14 V86 C42 88 40 90 38 90 H26 C24 90 22 88 22 86 V14 Z"/>
-        <!-- Upper loop blade -->
         <path class="logo-path" fill="var(--accent)" d="M42 14 H64 C76 14 86 24 86 36 C86 48 76 58 64 58 H42 V44 H62 C66.5 44 70 40.5 70 36 C70 31.5 66.5 28 62 28 H42 V14 Z"/>
-        <!-- Dynamic angled kinetic blade -->
         <path class="logo-path" fill="var(--accent)" d="M50 56 L76 86 C77.5 88 76 90 73.5 90 H59 C57.5 90 56 89.2 55.2 88 L38 68 L47 56 H50 Z"/>
       </svg>
     </div>
@@ -477,7 +983,6 @@
     </div>
     <div class="canvas-box">
       <svg id="svg-5" viewBox="0 0 100 100" fill="none">
-        <!-- Single continuous loop forming R & Infinity / Mobius -->
         <path class="logo-path" stroke="var(--accent)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" d="
           M28 84
           V24
@@ -517,12 +1022,10 @@
     </div>
     <div class="canvas-box">
       <svg id="svg-6" viewBox="0 0 100 100" fill="none">
-        <!-- Ultra bold heavy R with 45 deg laser cut slicing through -->
         <path class="logo-path" fill="var(--accent)" fill-rule="evenodd" clip-rule="evenodd" d="
           M18 14 H58 C74.57 14 86 25.43 86 42 C86 53.6 79.5 63 69.8 67.2 L85.5 86 H68 L54.5 69 H34 V86 H18 V14 Z
           M34 29 V54 H56 C64 54 70 48.6 70 41.5 C70 34.4 64 29 56 29 H34 Z
         "/>
-        <!-- Precision Laser Slit (45 deg cut out mask) -->
         <line x1="12" y1="52" x2="88" y2="52" stroke="#0c0d12" stroke-width="5" class="negative-cut-line"/>
       </svg>
     </div>
@@ -553,9 +1056,7 @@
     </div>
     <div class="canvas-box">
       <svg id="svg-7" viewBox="0 0 100 100" fill="none">
-        <!-- Left vertical pillar -->
         <rect class="logo-path" x="20" y="14" width="16" height="72" rx="8" fill="var(--accent)"/>
-        <!-- Right loop & kick formed with geometric curves -->
         <path class="logo-path" fill="var(--accent)" fill-rule="evenodd" clip-rule="evenodd" d="
           M44 14
           H62
@@ -605,9 +1106,7 @@
     </div>
     <div class="canvas-box">
       <svg id="svg-8" viewBox="0 0 100 100" fill="none">
-        <!-- Outer orbital circle with sharp diagonal laser slice creating R -->
         <circle class="logo-path" cx="50" cy="50" r="38" stroke="var(--accent)" stroke-width="12"/>
-        <!-- Inner R structural bridge -->
         <path class="logo-path" fill="var(--accent)" d="
           M38 28
           H56
@@ -656,7 +1155,6 @@
     </div>
     <div class="canvas-box">
       <svg id="svg-9" viewBox="0 0 100 100" fill="none">
-        <!-- Modern bold lowercase 'r' with top beacon dot -->
         <rect class="logo-path" x="24" y="32" width="16" height="52" rx="8" fill="var(--accent)"/>
         <path class="logo-path" fill="var(--accent)" d="
           M40 32
@@ -672,7 +1170,6 @@
           V32
           Z
         "/>
-        <!-- Rising Future Beacon / Node at top -->
         <circle class="logo-path" cx="32" cy="18" r="8" fill="var(--accent)"/>
       </svg>
     </div>
@@ -703,7 +1200,6 @@
     </div>
     <div class="canvas-box">
       <svg id="svg-10" viewBox="0 0 100 100" fill="none">
-        <!-- 3 rising architectural bars that create the negative silhouette of R -->
         <rect class="logo-path" x="18" y="14" width="14" height="72" rx="7" fill="var(--accent)"/>
         <rect class="logo-path" x="38" y="14" width="44" height="30" rx="15" fill="var(--accent)"/>
         <path class="logo-path" fill="var(--accent)" d="
@@ -717,7 +1213,6 @@
           H54
           Z
         "/>
-        <!-- Inner cutout pill in loop -->
         <rect x="48" y="24" width="18" height="10" rx="5" fill="#0c0d12" class="negative-cut"/>
       </svg>
     </div>
@@ -797,6 +1292,59 @@
       <path class="logo-path" fill="var(--accent)" d="M54 50 L78 82 H60 L40 60 V50 H54 Z"/>
       <rect x="48" y="24" width="18" height="10" rx="5" fill="#0c0d12" class="negative-cut"/>
     </g>
+
+    <!-- 11 -->
+    <g id="svg-11-shape">
+      <path class="logo-path" fill="var(--accent)" fill-rule="evenodd" clip-rule="evenodd" d="M50 12 C52.2 12 54.1 13.3 54.9 15.3 L85.9 81.3 C87.2 84 85.2 87 82.2 87 H63 C61 87 59.2 85.8 58.4 84 L50 64 L41.6 84 C40.8 85.8 39 87 37 87 H17.8 C14.8 87 12.8 84 14.1 81.3 L45.1 15.3 C45.9 13.3 47.8 12 50 12 Z M50 36 L37 67 H63 L50 36 Z"/>
+    </g>
+    <!-- 12 -->
+    <g id="svg-12-shape">
+      <circle class="logo-path" cx="50" cy="40" r="18" fill="var(--accent)"/>
+      <path class="logo-path" fill="var(--accent)" d="M12 76 C28 60 72 60 88 76 C89.5 78 88 80.5 85.5 80.5 H14.5 C12 80.5 10.5 78 12 76 Z"/>
+    </g>
+    <!-- 13 -->
+    <g id="svg-13-shape">
+      <rect class="logo-path" x="14" y="66" width="56" height="14" rx="7" transform="skewX(-32) translate(14, 0)" fill="var(--accent)"/>
+      <rect class="logo-path" x="22" y="43" width="56" height="14" rx="7" transform="skewX(-32) translate(14, 0)" fill="var(--accent)"/>
+      <rect class="logo-path" x="30" y="20" width="56" height="14" rx="7" transform="skewX(-32) translate(14, 0)" fill="var(--accent)"/>
+    </g>
+    <!-- 14 -->
+    <g id="svg-14-shape">
+      <path class="logo-path" fill="var(--accent)" fill-rule="evenodd" clip-rule="evenodd" d="M50 14 C69.9 14 86 30.1 86 50 C86 69.9 69.9 86 50 86 C30.1 86 14 69.9 14 50 C14 30.1 30.1 14 50 14 Z M50 26 C36.8 26 26 36.8 26 50 C26 63.3 36.8 74 50 74 C63.3 74 74 63.3 74 50 C74 36.8 63.3 26 50 26 Z"/>
+      <circle class="logo-path" cx="50" cy="50" r="14" fill="var(--accent)"/>
+      <rect x="46" y="8" width="8" height="84" fill="#0c0d12" class="negative-cut"/>
+      <rect x="8" y="46" width="84" height="8" fill="#0c0d12" class="negative-cut"/>
+    </g>
+    <!-- 15 -->
+    <g id="svg-15-shape">
+      <path class="logo-path" fill="var(--accent)" d="M24 84 L44 14 C44.8 12.5 47 12.5 47.8 14 L47.8 84 H26 Z"/>
+      <path class="logo-path" fill="var(--accent)" d="M76 84 L56 14 C55.2 12.5 53 12.5 52.2 14 L52.2 84 H74 Z"/>
+    </g>
+    <!-- 16 -->
+    <g id="svg-16-shape">
+      <path class="logo-path" fill="var(--accent)" d="M50 10 C50 32 68 50 90 50 C68 50 50 68 50 90 C50 68 32 50 10 50 C32 50 50 32 50 10 Z"/>
+    </g>
+    <!-- 17 -->
+    <g id="svg-17-shape">
+      <path class="logo-path" fill="var(--accent)" fill-rule="evenodd" clip-rule="evenodd" d="M30 26 C16.8 26 6 36.8 6 50 C6 63.3 16.8 74 30 74 C42 74 48 64 50 60 C52 64 58 74 70 74 C83.3 74 94 63.3 94 50 C94 36.8 83.3 26 70 26 C58 26 52 36 50 40 C48 36 42 26 30 26 Z M30 38 C23.4 38 18 43.4 18 50 C18 56.6 23.4 62 30 62 C38 62 44 54 46 50 C44 46 38 38 30 38 Z M70 38 C62 38 56 46 54 50 C56 54 62 62 70 62 C76.6 62 82 56.6 82 50 C82 43.4 76.6 38 70 38 Z"/>
+    </g>
+    <!-- 18 -->
+    <g id="svg-18-shape">
+      <polygon class="logo-path" points="50,14 82,32 50,50 18,32" fill="var(--accent)"/>
+      <polygon class="logo-path" points="18,38 47,54 47,88 18,72" fill="var(--accent)" opacity="0.85"/>
+      <polygon class="logo-path" points="53,54 82,38 82,72 53,88" fill="var(--accent)" opacity="0.7"/>
+    </g>
+    <!-- 19 -->
+    <g id="svg-19-shape">
+      <ellipse class="logo-path" cx="50" cy="50" rx="42" ry="18" transform="rotate(-30 50 50)" stroke="var(--accent)" stroke-width="10"/>
+      <circle class="logo-path" cx="50" cy="50" r="16" fill="var(--accent)"/>
+    </g>
+    <!-- 20 -->
+    <g id="svg-20-shape">
+      <path class="logo-path" fill="var(--accent)" d="M14 24 L44 50 L14 76 V24 Z"/>
+      <path class="logo-path" fill="var(--accent)" d="M86 24 L56 50 L86 76 V24 Z"/>
+      <rect class="logo-path" x="47" y="16" width="6" height="68" rx="3" fill="var(--accent)"/>
+    </g>
   </defs>
 </svg>
 
@@ -816,6 +1364,33 @@
     document.querySelectorAll('.negative-cut-line').forEach(l => {
       l.setAttribute('stroke', isLight ? '#edf0f5' : '#0c0d12');
     });
+  }
+
+  function filterCat(cat, btn) {
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    const absGrid = document.querySelector('.section-abstract');
+    const absTitle = document.querySelector('.section-abstract-title');
+    const monoGrid = document.querySelector('.section-monogram');
+    const monoTitle = document.querySelector('.section-monogram-title');
+
+    if (cat === 'all') {
+      absGrid.style.display = 'grid';
+      absTitle.style.display = 'flex';
+      monoGrid.style.display = 'grid';
+      monoTitle.style.display = 'flex';
+    } else if (cat === 'abstract') {
+      absGrid.style.display = 'grid';
+      absTitle.style.display = 'flex';
+      monoGrid.style.display = 'none';
+      monoTitle.style.display = 'none';
+    } else if (cat === 'monogram') {
+      absGrid.style.display = 'none';
+      absTitle.style.display = 'none';
+      monoGrid.style.display = 'grid';
+      monoTitle.style.display = 'flex';
+    }
   }
 
   function copySvg(num) {
