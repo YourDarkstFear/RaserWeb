@@ -1,0 +1,602 @@
+/* ---- Muriel iOS layout ----
+   Top: logo + search. Bottom: tab bar (the desktop rail, turned sideways) with a mini player above it.
+   Tapping the mini player opens the now-playing sheet (the desktop drawer, full screen) and the
+   player bar expands into full transport controls at the bottom of that sheet. */
+
+html.is-mobile {
+  --tabbar-h: 56px;
+  --mini-h: 64px;
+  /* iOS reports insets through env(); Capacitor on Android injects --safe-area-inset-* instead
+     (older Android WebViews report env() as 0), so take whichever is larger */
+  --safe-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+  --chrome-bottom: calc(var(--tabbar-h) + var(--mini-h) + var(--safe-bottom) + 12px);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+html.is-mobile body { overscroll-behavior: none; touch-action: manipulation; }
+
+/* ---------- top bar ---------- */
+html.is-mobile .titlebar {
+  height: auto !important;
+  padding: calc(var(--safe-top) + 8px) 16px 8px !important;
+  -webkit-app-region: no-drag;
+}
+html.is-mobile .titlebar-controls,
+html.is-mobile #btn-mini-player { display: none !important; }
+/* the profile avatar (profiles.js) sits top right, big enough for a thumb */
+html.is-mobile .profile-switch { height: 36px; margin: -4px -6px -4px 8px; padding: 3px; }
+html.is-mobile .profile-switch.named { padding-right: 12px; }
+html.is-mobile .profile-switch .profile-avatar { width: 30px; height: 30px; font-size: 14px; }
+html.is-mobile .profile-switch .profile-avatar.emoji { font-size: 17px; }
+html.is-mobile .profile-menu { background: var(--md-sys-color-surface-container-highest-solid) !important; box-shadow: 0 8px 24px rgba(0, 0, 0, .35); }
+html.is-mobile .profile-menu-item { min-height: 48px; }
+html.is-mobile .profile-swatch { width: 26px; height: 26px; }
+html.is-mobile .top-nav {
+  position: static !important;
+  transform: none !important;
+  width: 100% !important;
+  display: flex !important;
+  gap: 8px !important;
+  margin: 8px 0 0 !important;
+  padding: 0 16px !important;
+}
+html.is-mobile .top-nav { flex-wrap: nowrap !important; height: auto !important; }
+/* the desktop bar centres the search box absolutely; on tablets (no 600px media query) it floated over the hero */
+html.is-mobile .search-box-wrapper,
+html.is-mobile .top-nav.search-pos-middle .search-box-wrapper {
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+}
+html.is-mobile .search-box { width: 100% !important; height: 42px !important; }
+/* the full placeholder never fits next to the source buttons on a phone */
+html.is-mobile .search-box input::placeholder { text-overflow: ellipsis; }
+
+/* ---------- main area ---------- */
+html.is-mobile .app-layout {
+  padding: 0 !important;
+  margin: 0 !important;
+  gap: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  position: fixed !important;
+  inset: calc(var(--safe-top) + 108px) 0 var(--chrome-bottom) 0 !important;
+}
+html.is-mobile .main-content {
+  border-radius: 0 !important;
+  padding: 12px 16px 24px !important;
+  background: transparent !important;
+  -webkit-overflow-scrolling: touch;
+}
+/* the album page scrolls by itself (styles.css); the mini player is already below this area */
+html.is-mobile #view-album.active { padding-bottom: 24px; }
+
+/* ---------- tab bar (the rail) ---------- */
+html.is-mobile .sidebar {
+  position: fixed !important;
+  left: 0; right: 0; bottom: 0;
+  width: auto !important;
+  height: calc(var(--tabbar-h) + var(--safe-bottom)) !important;
+  padding: 0 4px var(--safe-bottom) !important;
+  border-radius: 0 !important;
+  flex-direction: row !important;
+  justify-content: space-around !important;
+  align-items: center !important;
+  gap: 0 !important;
+  z-index: 3200 !important;
+  background: var(--md-sys-color-surface-container-solid, #1E1F22) !important;
+}
+html.is-mobile .sidebar-nav { flex-direction: row !important; justify-content: space-around !important; width: auto !important; flex: 1 1 auto; gap: 0 !important; }
+html.is-mobile .rail-action-group { flex-direction: row !important; gap: 0 !important; }
+html.is-mobile .nav-active-indicator,
+html.is-mobile .rail-divider,
+html.is-mobile #btn-toggle-presets-drawer { display: none !important; }
+html.is-mobile .nav-item,
+html.is-mobile .rail-icon-btn { width: 52px !important; height: 44px !important; border-radius: 22px !important; }
+/* Riff's rail turned sideways: the active tab's icon sits in a filled primary pill (in on-primary),
+   the same spring press as the desktop rail */
+html.is-mobile .nav-item.active { background: transparent !important; }
+html.is-mobile .sidebar .nav-indicator { width: 44px !important; height: 32px !important; border-radius: 16px !important; }
+html.is-mobile .sidebar .nav-item.active .nav-indicator { background: var(--md-sys-color-primary) !important; color: var(--md-sys-color-on-primary) !important; }
+html.is-mobile .nav-item { transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important; }
+html.is-mobile .nav-item:active { transform: scale(0.92); }
+
+/* playlists drawer: a bottom sheet instead of a fly-out from the rail */
+html.is-mobile .rail-drawer {
+  position: fixed !important;
+  left: 8px !important; right: 8px !important; top: auto !important;
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 8px) !important;
+  width: auto !important;
+  max-height: 60vh !important;
+  border-radius: 24px !important;
+  z-index: 3300 !important;
+}
+
+/* ---------- mini player ---------- */
+html.is-mobile .playbar {
+  position: fixed !important;
+  left: 8px !important; right: 8px !important;
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 6px) !important;
+  top: auto !important;
+  height: var(--mini-h) !important;
+  padding: 0 8px 0 8px !important;
+  border-radius: 24px !important;
+  /* phones draw no blur, so the bar floating over the list stays solid at any UI opacity */
+  background: var(--md-sys-color-surface-container-solid, #1E1F22) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  z-index: 3100 !important;
+  width: auto !important;
+  transition: none !important;
+}
+html.is-mobile .playbar-left { flex: 1 1 auto !important; min-width: 0 !important; gap: 10px !important; width: auto !important; }
+html.is-mobile .playbar-left .track-meta { max-width: none !important; flex: 1 1 auto !important; }
+html.is-mobile .playbar-left > .btn-icon-pill,
+html.is-mobile .playbar-right,
+html.is-mobile #btn-shuffle, html.is-mobile #btn-repeat, html.is-mobile #btn-prev,
+html.is-mobile .playbar-center .scrubber-bar-wrapper { display: none !important; }
+html.is-mobile .playbar-center { flex: 0 0 auto !important; width: auto !important; max-width: none !important; }
+html.is-mobile .playback-controls { gap: 2px !important; }
+html.is-mobile .btn-play-pause { width: 44px !important; height: 44px !important; }
+/* thin progress line along the bottom of the mini player */
+html.is-mobile .playbar::after {
+  content: '';
+  position: absolute;
+  left: 14px; right: 14px; bottom: 3px;
+  height: 2px; border-radius: 1px;
+  background: linear-gradient(90deg, var(--md-sys-color-primary) calc(var(--mini-progress, 0) * 100%), color-mix(in srgb, var(--md-sys-color-on-surface-solid, #fff) 12%, transparent) 0);
+}
+
+/* ---------- now-playing sheet ---------- */
+html.is-mobile #right-panel {
+  position: fixed !important;
+  inset: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  border-radius: 0 !important;
+  padding: calc(var(--safe-top) + 10px) 20px calc(var(--safe-bottom) + 170px) !important;
+  z-index: 3400 !important;
+  box-shadow: none !important;
+}
+html.is-mobile #right-panel.hidden { transform: translateY(100%) !important; opacity: 1 !important; }
+html.is-mobile #right-panel::before {
+  content: '';
+  position: absolute; top: calc(var(--safe-top) + 4px); left: 50%;
+  width: 40px; height: 5px; margin-left: -20px; border-radius: 3px;
+  background: color-mix(in srgb, var(--md-sys-color-on-surface-solid, #fff) 30%, transparent);
+}
+html.is-mobile .cover-container,
+html.is-mobile .right-panel-cover,
+html.is-mobile .right-panel-cover-fallback { width: min(72vw, 300px) !important; height: min(72vw, 300px) !important; }
+
+/* with the sheet open the player bar becomes full controls docked at its bottom */
+html.is-mobile body.np-open .playbar {
+  z-index: 3500 !important;
+  left: 0 !important; right: 0 !important; bottom: 0 !important;
+  height: auto !important;
+  border-radius: 0 !important;
+  padding: 10px 20px calc(var(--safe-bottom) + 14px) !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  backdrop-filter: none !important;
+}
+html.is-mobile body.np-open .playbar::after,
+html.is-mobile body.np-open .playbar-left { display: none !important; }
+html.is-mobile body.np-open .playbar-center { width: 100% !important; display: flex !important; flex-direction: column-reverse !important; gap: 10px !important; }
+html.is-mobile body.np-open .playbar-center .scrubber-bar-wrapper { display: flex !important; width: 100% !important; }
+html.is-mobile body.np-open #btn-shuffle, html.is-mobile body.np-open #btn-repeat, html.is-mobile body.np-open #btn-prev { display: inline-flex !important; }
+html.is-mobile body.np-open .playback-controls { justify-content: space-between !important; width: 100% !important; }
+html.is-mobile body.np-open .btn-play-pause { width: 64px !important; height: 64px !important; }
+html.is-mobile body.np-open .playbar-right { display: flex !important; justify-content: space-around !important; width: 100% !important; }
+html.is-mobile body.np-open .volume-control-group,
+html.is-mobile body.np-open .visualizer-container,
+html.is-mobile body.np-open #btn-toggle-lyrics-panel { display: none !important; }
+
+/* ---------- views, settings and dialogs at phone width ---------- */
+html.is-mobile .settings-layout { flex-direction: column !important; gap: 12px !important; }
+/* the categories are a labelled list on phones (styles.css, max-width 760px): tap one to open it */
+html.is-mobile .settings-nav {
+  position: static !important;
+  flex: 0 0 auto !important;
+  flex-direction: column !important;
+  overflow: visible !important;
+  max-height: none !important;
+  width: 100% !important;
+}
+html.is-mobile .settings-nav-btn { flex: 0 0 auto !important; white-space: nowrap !important; }
+/* Settings kept the computer's 32px page padding, and the pane sized itself to its widest row (Icon style's 236px
+   picker) instead of the screen, so the whole page sat shifted right and ran off the edge (issue #9) */
+html.is-mobile .settings-view { padding: 24px 4px !important; }
+html.is-mobile .settings-layout { align-items: stretch !important; }
+html.is-mobile .setting-item-top:has(> #icon-pack-dropdown) { flex-wrap: wrap !important; }
+html.is-mobile #icon-pack-dropdown { flex: 1 1 100% !important; width: auto !important; }
+html.is-mobile .settings-card,
+html.is-mobile .modal-backdrop > * { max-width: calc(100vw - 24px) !important; }
+html.is-mobile .track-row { padding: 8px 6px !important; gap: 12px !important; }
+html.is-mobile .track-row-index { display: none !important; }
+html.is-mobile .chips-row, html.is-mobile .genre-chips { overflow-x: auto !important; flex-wrap: nowrap !important; }
+
+/* hover-only controls are unreachable by touch; keep row actions visible */
+html.is-mobile .track-row .track-row-actions { opacity: 1 !important; }
+
+/* ---------- touch-sized details ---------- */
+html.is-mobile .rail-action-group { display: flex !important; }
+html.is-mobile .track-row .btn-row-art,
+html.is-mobile .track-row .track-row-duration { display: none !important; }
+/* a 4th button squeezed playlist titles to ~100px and put "remove" one mis-tap away; it's in the "..." menu */
+html.is-mobile .track-row .btn-row-remove-playlist { display: none !important; }
+html.is-mobile .track-row .btn-icon-pill { width: 36px !important; height: 36px !important; }
+html.is-mobile .results-header { flex-wrap: wrap !important; gap: 4px 8px !important; align-items: baseline !important; }
+html.is-mobile .results-title { font-size: 22px !important; line-height: 1.2 !important; flex: 1 1 100% !important; }
+html.is-mobile .results-count { font-size: 13px !important; }
+html.is-mobile .suggestion-chips { flex-wrap: nowrap !important; overflow-x: auto !important; scrollbar-width: none !important; margin: 0 -16px !important; padding: 0 16px !important; }
+html.is-mobile .suggestion-chips::-webkit-scrollbar { display: none; }
+html.is-mobile .suggestion-chips .chip-btn { flex: 0 0 auto !important; }
+
+/* the sheet lives inside .app-layout's stacking context, so lift the whole layer above the header while it's open */
+html.is-mobile body.np-open .app-layout { z-index: 3400 !important; }
+html.is-mobile body.np-open .titlebar,
+html.is-mobile body.np-open .top-nav { visibility: hidden !important; }
+/* a desktop small-window rule hides the drawer; on the phone it is the playlists sheet */
+html.is-mobile #rail-drawer:not(.hidden) { display: flex !important; flex-direction: column !important; overflow-y: auto !important; padding: 16px !important; background: var(--md-sys-color-surface-container-solid, #1E1F22) !important; box-shadow: 0 -8px 30px rgba(0,0,0,.45) !important; }
+html.is-mobile #rail-drawer:not(.hidden) {
+  position: fixed !important; width: auto !important; left: 8px !important; right: 8px !important; top: auto !important;
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 8px) !important;
+  min-height: 45vh !important; max-height: 70vh !important; border-radius: 24px !important; transform: none !important;
+}
+html.is-mobile #rail-drawer .playlists-list { flex: 1 1 auto; overflow-y: auto; }
+html.is-mobile #rail-drawer:not(.hidden) {
+  width: calc(100vw - 16px) !important; max-width: none !important; min-width: 0 !important;
+  bottom: calc(var(--tabbar-h) + var(--mini-h) + var(--safe-bottom) + 14px) !important;
+  min-height: 40vh !important; max-height: 60vh !important;
+}
+html.is-mobile #rail-drawer .playlists-list:empty::after {
+  content: 'No playlists yet. Tap + to make one, or use + on any song.';
+  display: block; padding: 24px 8px; text-align: center; color: var(--md-sys-color-on-surface-variant); font-size: 14px; line-height: 1.5;
+}
+
+/* ---------- settings at phone width: no overlapping labels or switches ---------- */
+/* the middle hint ("100%", "Default") is positioned at its tick and collides with the edge labels */
+html.is-mobile .setting-hints > span:not(:first-child):not(:last-child),
+html.is-mobile .slider-tick-labels > span:not(:first-child):not(:last-child) { display: none !important; }
+html.is-mobile .setting-hints { position: static !important; }
+/* text column shrinks, the switch/button keeps its size and gets breathing room */
+html.is-mobile .setting-item-top { gap: 12px !important; align-items: center !important; }
+html.is-mobile .setting-item-top > div:first-child,
+html.is-mobile .setting-item-top > .setting-name:first-child { flex: 1 1 auto !important; min-width: 0 !important; }
+html.is-mobile .setting-item-top > .effect-switch-btn,
+html.is-mobile .setting-item-top > button,
+html.is-mobile .setting-item-top > .theme-mode-toggle { flex: 0 0 auto !important; margin-left: auto !important; }
+html.is-mobile .setting-item-top > div:last-child:not(:first-child) { flex: 0 0 auto !important; }
+/* use the width */
+html.is-mobile #view-settings { padding: 0 !important; }
+html.is-mobile .settings-content, html.is-mobile .settings-section, html.is-mobile .m3-group { padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; margin-right: 0 !important; }
+html.is-mobile .setting-item { padding: 14px 14px !important; }
+html.is-mobile .theme-mode-toggle { flex-wrap: wrap !important; }
+html.is-mobile .slider-ticks i.major:not(:first-child):not(:last-child) > span { display: none !important; }
+
+/* ---------- Now Playing sheet: a solid screen of its own (no Home bleeding through) ---------- */
+html.is-mobile #right-panel {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--np-c1) 38%, transparent) 0%, color-mix(in srgb, var(--np-c2) 16%, transparent) 50%, transparent 82%),
+    var(--md-sys-color-surface-container-low-solid, #1A1B1E) !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important; border: none !important;
+  padding-bottom: calc(var(--safe-bottom) + 236px) !important;
+}
+/* the finger moves the sheet directly: no 320ms transition chasing it (the drawer's transition is !important) */
+html.is-mobile #right-panel.is-dragging { transition: none !important; }
+/* nothing behind the sheet needs to draw while it covers the screen */
+html.is-mobile body.np-open .main-content,
+html.is-mobile body.np-open .sidebar { visibility: hidden !important; }
+/* lyrics fade out above the controls instead of running underneath them */
+html.is-mobile #right-panel .lyrics-container {
+  -webkit-mask-image: linear-gradient(transparent, #000 8%, #000 86%, transparent);
+  mask-image: linear-gradient(transparent, #000 8%, #000 86%, transparent);
+}
+html.is-mobile body.np-open .playbar { background: linear-gradient(transparent, var(--md-sys-color-surface-container-low-solid, #1A1B1E) 22%) !important; }
+
+/* ---------- popups: opaque cards that fit the phone ---------- */
+html.is-mobile .modal-backdrop {
+  background: rgba(0, 0, 0, 0.72) !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  z-index: 5000 !important;
+  padding: calc(var(--safe-top) + 12px) 12px calc(var(--safe-bottom) + 12px) !important;
+}
+html.is-mobile .modal-backdrop .settings-card {
+  background: var(--md-sys-color-surface-container-solid, #1E1F22) !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  width: 100% !important; max-width: 100% !important;
+  max-height: calc(100vh - var(--safe-top) - var(--safe-bottom) - 24px) !important; overflow-y: auto !important;
+}
+/* real-time lyrics sync: one clean column */
+html.is-mobile .sync-mode-card .settings-card-header { flex-wrap: wrap !important; gap: 8px !important; }
+html.is-mobile .sync-track-banner { flex-direction: column !important; align-items: flex-start !important; gap: 6px !important; }
+html.is-mobile .sync-tip-pill { white-space: normal !important; }
+html.is-mobile .sync-controls-bar { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 10px !important; align-items: center !important; }
+html.is-mobile .sync-controls-bar .sync-progress-text { grid-column: 1 / -1 !important; order: -1 !important; text-align: center !important; white-space: nowrap !important; }
+html.is-mobile .sync-controls-bar button { width: 100% !important; justify-content: center !important; }
+
+/* ---------- toasts: above the player at the bottom, never over headers ---------- */
+html.is-mobile .toast-container {
+  top: auto !important; bottom: calc(var(--tabbar-h) + var(--mini-h) + var(--safe-bottom) + 18px) !important;
+  left: 12px !important; right: 12px !important; transform: none !important; align-items: center !important; z-index: 6000 !important;
+}
+html.is-mobile body.np-open .toast-container { bottom: calc(var(--safe-bottom) + 250px) !important; }
+/* sheet: hints sit at the very bottom, under the popup content rather than on it */
+html.is-mobile body.np-open .toast-container { bottom: calc(var(--safe-bottom) + 12px) !important; }
+/* sync popup header stays on one line: title shrinks, close button keeps its spot */
+html.is-mobile .sync-mode-card .settings-card-header { flex-wrap: nowrap !important; align-items: center !important; }
+html.is-mobile .sync-mode-card .settings-title-group { flex: 1 1 auto !important; min-width: 0 !important; flex-wrap: wrap !important; gap: 4px 8px !important; }
+html.is-mobile .sync-mode-card .settings-title-group h3 { font-size: 18px !important; }
+html.is-mobile .sync-mode-card #btn-cancel-sync { flex: 0 0 auto !important; }
+/* when a song has lyrics, the cover shrinks so the lyrics get the space */
+html.is-mobile #right-panel:not(.lyrics-empty) .cover-container,
+html.is-mobile #right-panel:not(.lyrics-empty) .right-panel-cover,
+html.is-mobile #right-panel:not(.lyrics-empty) .right-panel-cover-fallback { width: min(42vw, 20vh) !important; height: min(42vw, 20vh) !important; }
+html.is-mobile #right-panel:not(.lyrics-empty) .lyrics-section { flex: 1 1 auto !important; min-height: 0 !important; }
+html.is-mobile #right-panel:not(.lyrics-empty) .lyrics-container { flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto !important; }
+
+/* Spotify "Log in" redirects back to a local web server, which the phone build doesn't have;
+   playlist links and the Spotify data-export files work on the phone */
+html.is-mobile #sp-modes button[data-mode="login"],
+html.is-mobile .sp-pane[data-mode="login"] { display: none !important; }
+/* YouTube / YouTube Music "Log in" needs the desktop app's separate Google login window (google-library.js);
+   playlist links work on the phone */
+html.is-mobile #link-modes,
+html.is-mobile .link-pane[data-mode="login"] { display: none !important; }
+
+/* ---------- Now Playing: drifting cover-colour glow (off: phones never animated it, and the static blobs read as a generic glow; the sheet keeps its one cover-coloured wash) ---------- */
+html.is-mobile #right-panel > .np-ambient { display: none !important; }
+html.is-mobile #right-panel > .np-ambient {
+  position: absolute !important; inset: 0 !important; z-index: 0 !important; overflow: hidden; pointer-events: none; border-radius: inherit;
+}
+html.is-mobile .np-ambient i {
+  position: absolute; width: 120vmax; height: 120vmax; left: 50%; top: 40%; margin: -60vmax 0 0 -60vmax; border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--np-c1, #6750A4) 55%, transparent), transparent 70%);
+  opacity: .55; will-change: transform;
+  animation: np-drift-a 26s ease-in-out infinite alternate; animation-play-state: paused;
+}
+html.is-mobile .np-ambient i:nth-child(2) {
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--np-c2, #9A82DB) 55%, transparent), transparent 70%);
+  animation-name: np-drift-b; animation-duration: 33s; opacity: .45;
+}
+html.is-mobile .np-ambient i:nth-child(3) {
+  width: 80vmax; height: 80vmax; margin: -40vmax 0 0 -40vmax; top: 75%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--np-c1, #6750A4) 40%, var(--np-c2, #9A82DB) 30%), transparent 70%);
+  animation-name: np-drift-c; animation-duration: 41s; opacity: .35;
+}
+html.is-mobile body.np-open:not(.hidden-window) .np-ambient i { animation-play-state: running; }
+@keyframes np-drift-a { from { transform: translate(-28%, -20%) scale(1); } to { transform: translate(18%, 12%) scale(1.25); } }
+@keyframes np-drift-b { from { transform: translate(25%, 18%) scale(1.15); } to { transform: translate(-20%, -16%) scale(.9); } }
+@keyframes np-drift-c { from { transform: translate(-10%, 10%) scale(.95); } to { transform: translate(14%, -14%) scale(1.2); } }
+html.is-mobile #right-panel > :not(.np-ambient) { position: relative; z-index: 1; }
+@media (prefers-reduced-motion: reduce) { html.is-mobile .np-ambient i { animation: none !important; } }
+
+/* ---------- lyrics in the Apple Music style: big, bold, left-aligned, sung words light up ---------- */
+html.is-mobile #right-panel .lyric-line {
+  font-size: calc(25px * var(--font-scale, 1)) !important; font-weight: 800 !important; line-height: 1.22 !important; letter-spacing: -0.012em;
+  text-align: left !important; padding: 9px 6px !important; transform-origin: left center !important;
+  color: var(--md-sys-color-on-surface) !important; filter: none !important;
+  opacity: max(.22, calc(.42 - var(--dist, 0) * .05)) !important;
+  transition: opacity .45s ease, transform .45s cubic-bezier(.2, .8, .2, 1) !important;
+}
+html.is-mobile #right-panel .lyric-line.active { opacity: 1 !important; transform: scale(1.025) !important; background: transparent !important; }
+html.is-mobile #right-panel .lyric-line.active .lyric-word { color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent); transition: color .22s ease, text-shadow .22s ease; font-weight: 800; }
+html.is-mobile #right-panel .lyric-line.active .lyric-word.past-word { color: var(--md-sys-color-on-surface); }
+html.is-mobile #right-panel .lyric-line.active .lyric-word.active-word { color: var(--md-sys-color-on-surface); }
+
+/* ---------- touch: everything tappable is at least ~40px ---------- */
+html.is-mobile .track-row .btn-icon-pill { width: 40px !important; height: 40px !important; background: transparent !important; }
+html.is-mobile .playbar .btn-icon-pill, html.is-mobile .playbar .control-btn { min-width: 40px !important; min-height: 40px !important; }
+html.is-mobile .chip-btn { min-height: 36px !important; }
+html.is-mobile .lyrics-action-btn { width: 40px !important; height: 40px !important; }
+
+/* lyrics showing: compact header (small cover + title/artist in one row), lyrics fill the screen */
+html.is-mobile #right-panel:not(.lyrics-empty) .right-panel-artwork-box {
+  flex-direction: row !important; align-items: center !important; justify-content: flex-start !important; gap: 12px !important; text-align: left !important; flex: 0 0 auto !important;
+}
+html.is-mobile #right-panel:not(.lyrics-empty) .cover-container,
+html.is-mobile #right-panel:not(.lyrics-empty) .right-panel-cover,
+html.is-mobile #right-panel:not(.lyrics-empty) .right-panel-cover-fallback { width: 56px !important; height: 56px !important; border-radius: 8px !important; flex: 0 0 auto !important; }
+html.is-mobile #right-panel:not(.lyrics-empty) #btn-right-panel-art { display: none !important; }
+html.is-mobile #right-panel:not(.lyrics-empty) .right-panel-meta { align-items: flex-start !important; text-align: left !important; min-width: 0 !important; flex: 1 1 auto !important; }
+html.is-mobile #right-panel:not(.lyrics-empty) .right-panel-title { font-size: 17px !important; text-align: left !important; }
+html.is-mobile #right-panel:not(.lyrics-empty) .lyrics-header { justify-content: flex-start !important; }
+html.is-mobile .right-panel-header-actions { display: flex !important; align-items: center !important; justify-content: flex-end !important; gap: 6px !important; width: 100% !important; }
+html.is-mobile .np-tools-moved { display: flex !important; gap: 6px !important; padding: 0 !important; margin-right: auto !important; background: transparent !important; }
+html.is-mobile .np-tools-moved .lyrics-action-btn { width: 36px !important; height: 36px !important; }
+html.is-mobile #right-panel .lyrics-header:empty, html.is-mobile #right-panel .lyrics-header:not(:has(*)) { display: none !important; }
+
+/* like button in Now Playing */
+html.is-mobile #np-like { flex: 0 0 auto; width: 40px; height: 40px; display: grid; place-items: center; background: none; border: 0; color: var(--md-sys-color-on-surface-variant); }
+html.is-mobile #np-like svg { width: 24px; height: 24px; }
+html.is-mobile #np-like.on { color: var(--md-sys-color-primary); }
+html.is-mobile #np-like.pop { animation: np-like-pop .35s cubic-bezier(.2, .8, .2, 1.4); }
+@keyframes np-like-pop { 0% { transform: scale(1); } 40% { transform: scale(1.3); } 100% { transform: scale(1); } }
+html.is-mobile #right-panel:not(.lyrics-empty) .right-panel-title-row { width: 100% !important; }
+
+/* ---------- artist page: the banner edge to edge, the name, Play and Follow on it; About below (tap for all) ---------- */
+html.is-mobile #view-artist { --artist-pad: 16px; --artist-hero-h: clamp(250px, 40vh, 340px); }
+html.is-mobile #btn-back-artist { top: 12px !important; left: 12px !important; }
+html.is-mobile .artist-hero-info { left: 16px !important; right: 16px !important; bottom: 16px !important; gap: 6px !important; }
+html.is-mobile .artist-title { font-size: clamp(30px, 9vw, 40px) !important; line-height: 1.05 !important; }
+html.is-mobile .artist-verified-check { width: 22px; height: 22px; }
+html.is-mobile .artist-play-btn { width: 48px; height: 48px; min-width: 48px; }
+html.is-mobile .artist-about-card { position: static !important; width: auto !important; margin: 12px 16px 0 !important; padding: 14px 16px !important; }
+html.is-mobile .artist-about-bio { max-height: calc(3 * 1.45em); cursor: pointer; }
+html.is-mobile .artist-horiz-tabs { gap: 8px; padding-top: 8px; }
+html.is-mobile .artist-horiz-tab { min-width: 0; flex: 1 1 0; padding: 10px 8px 11px; }
+html.is-mobile .artist-tracks-header { padding: 18px 0 8px; flex-wrap: wrap; }
+html.is-mobile .artist-tracks-title { font-size: 20px; }
+html.is-mobile :is(.artist-albums-grid, .saved-albums-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+html.is-mobile .artist-bio-modal-body { max-height: calc(100vh - 380px - var(--safe-top) - var(--safe-bottom)); }
+
+/* ---------- Riff 43 library pages on phones: Albums tab, sort menu, Spotify-style home ---------- */
+/* a tab switched off in Settings (Albums, My files) leaves no gap in the tab bar */
+html.is-mobile .nav-item.nav-collapsed { display: none !important; }
+/* seven tabs (Albums on) still fit a 360px wide phone */
+html.is-mobile body:not(.hide-albums-tab) .nav-item,
+html.is-mobile body:not(.hide-albums-tab) .rail-icon-btn { width: 46px !important; }
+html.is-mobile body:not(.hide-artists-tab) .nav-item,
+html.is-mobile body:not(.hide-artists-tab) .rail-icon-btn { width: 46px !important; }
+/* eight tabs (Albums and Artists on) */
+html.is-mobile body:not(.hide-albums-tab):not(.hide-artists-tab) .nav-item,
+html.is-mobile body:not(.hide-albums-tab):not(.hide-artists-tab) .rail-icon-btn { width: 40px !important; }
+html.is-mobile .followed-artists-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 12px; }
+html.is-mobile .sort-dropdown { min-width: 0; max-width: 100%; }
+html.is-mobile .sort-dropdown .m3-dropdown-menu { max-height: 50vh; overflow-y: auto; }
+html.is-mobile .m3-dropdown-option { min-height: 44px; }
+html.is-mobile #playlist-detail-desc.playlist-inline-desc { max-width: 100%; }
+html.is-mobile .sp-home { gap: 22px; }
+html.is-mobile .sp-section h2 { font-size: 20px; margin-bottom: 10px; }
+html.is-mobile .sp-quick { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+html.is-mobile .sp-tile { height: 56px; gap: 10px; }
+html.is-mobile .sp-tile-art, html.is-mobile .sp-tile-art img, html.is-mobile .sp-tile-art .playlist-cover-art { width: 56px; height: 56px; flex-basis: 56px; }
+html.is-mobile .sp-row { grid-auto-columns: 136px; gap: 12px; }
+html.is-mobile .fav-artists-row { grid-auto-columns: 120px; gap: 14px; }
+html.is-mobile .fav-artist-circle { width: 112px; height: 112px; }
+html.is-mobile .fav-artist-name { max-width: 112px; }
+/* no hover on a phone: a tap opens the artist; Play and Profile stay out of the way */
+html.is-mobile .fav-artist-hover { display: none !important; }
+html.is-mobile .daily-mix-feedback { width: 100%; }
+
+/* Riff 42.3 home hero: title on the left, refresh/play on the right instead of stacked on top of each other */
+html.is-mobile .home-pane-header { justify-content: space-between; gap: 8px; padding: 0 12px; }
+html.is-mobile .home-pane-header .my-wave-actions { position: static; transform: none; flex: none; }
+html.is-mobile .home-pane-label { min-width: 0; padding: 6px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Power saving: phones skip continuous decorative motion and live blur ---------- */
+html.is-mobile .np-ambient i { animation: none !important; will-change: auto; }
+html.is-mobile :is(.bg-mesh-layer, #mesh-gradient, .shape-pill, .shape-egg, .shape-triangle, .cover-container.spinning, .logo-star path, #sleep-timer-status.active::before) { animation: none !important; }
+html.is-mobile *, html.is-mobile *::before, html.is-mobile *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+html.is-mobile #visualizer-container, html.is-mobile #mini-visualizer { display: none !important; }
+
+/* Riff 42.3 gave the Now Playing header min-height:0, so in the sheet's column it shrank to a few px and the
+   lyrics tools (edit / sync / translate / fullscreen / Word) got clipped under the tabs */
+html.is-mobile .right-panel-header { flex-shrink: 0 !important; min-height: max-content !important; margin-bottom: 0 !important; }
+/* the animated M3 cover is desktop-only (see m3cEnabled in app.js) */
+html.is-mobile .setting-item:has(#toggle-m3-cover) { display: none !important; }
+/* the download folder is fixed on phones (Files → Muriel → Downloads on iPhone, Music/Muriel on Android):
+   Change and Reset did nothing there */
+html.is-mobile #btn-change-download-folder, html.is-mobile #btn-reset-download-folder { display: none !important; }
+/* mini player cover: Muriel's 48px square inside the bar, not Riff 42.3's 72px one that pokes out above it */
+html.is-mobile #playbar-artwork-wrapper, html.is-mobile #m3c-wrap { width: 48px !important; height: 48px !important; margin-top: 0 !important; }
+html.is-mobile #playbar-artwork-wrapper { overflow: hidden !important; border-radius: var(--md-shape-corner-s); }
+/* update banner sits just under the status bar on phones */
+html.is-mobile .update-banner { top: calc(var(--safe-top) + 10px); width: calc(100vw - 24px); }
+/* Muriel Encore: keep the story clear of the notch and the home bar */
+html.is-mobile .enc-bar { top: calc(var(--safe-top) + 10px); }
+html.is-mobile .enc-close { top: calc(var(--safe-top) + 2px); }
+html.is-mobile .enc-slide { padding-top: calc(var(--safe-top) + 70px); padding-bottom: calc(var(--safe-bottom) + 40px); }
+html.is-mobile .onrepeat-head .section-title { flex-basis: 100%; }
+
+/* ---------- playlist page header ----------
+   the desktop header is one row (cover | title + buttons); on a phone the buttons ran off both edges */
+html.is-mobile .playlist-detail-header {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 14px !important;
+  padding: 20px 16px 16px !important;
+}
+html.is-mobile .playlist-detail-header #playlist-detail-cover,
+html.is-mobile .playlist-detail-header .playlist-cover-wrapper,
+html.is-mobile .playlist-detail-header .playlist-cover-art,
+html.is-mobile .playlist-detail-header .cover-single-img,
+html.is-mobile .playlist-detail-header img {
+  width: 140px !important; height: 140px !important;
+  min-width: 140px !important; min-height: 140px !important;
+  max-width: 140px !important; max-height: 140px !important;
+}
+html.is-mobile .playlist-meta { width: 100% !important; gap: 6px !important; }
+html.is-mobile #playlist-detail-title { font-size: 1.7rem; white-space: normal; overflow-wrap: anywhere; }
+html.is-mobile .playlist-actions {
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin-top: 6px !important;
+  width: 100%;
+}
+html.is-mobile .playlist-actions .pill-select { max-width: 100%; }
+html.is-mobile #view-favorites .view-header { margin-bottom: 12px; flex-wrap: wrap; }
+
+/* hold a song for its menu: no iOS text-selection loupe or link callout, and a small lift as feedback */
+html.is-mobile .track-row { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+html.is-mobile .track-row.is-held:not(.is-dragging) {
+  transform: scale(0.985);
+  background: var(--md-sys-color-surface-container-highest);
+  transition: transform 160ms cubic-bezier(0.2, 0, 0, 1), background 160ms ease;
+}
+
+/* multi-select bar: the desktop pill (one 580px row) ran off both sides of a phone */
+html.is-mobile .multi-select-bar {
+  left: 12px;
+  right: 12px;
+  transform: none;
+  bottom: calc(var(--chrome-bottom) + 8px);
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: 8px;
+  border-radius: 24px;
+  padding: 10px 12px;
+}
+html.is-mobile .multi-select-bar .multi-select-count { flex: 1 0 100%; text-align: center; }
+
+/* a song row is one tap target on phones. The artist name inside it caught taps meant for the song (the browser
+   snaps a finger tap onto the nearest tappable element) and opened the artist; "Go to artist" is in the menu. */
+html.is-mobile .track-row .track-row-artist { pointer-events: none; cursor: default; text-decoration: none; }
+/* rows past the 25th used content-visibility:auto with a 64px stand-in size for 60px rows, so on iPhone a long
+   list (an artist's 35 songs) changed height under the finger while scrolling. The lists already render only
+   the rows on screen, so phones lay every row out normally. */
+html.is-mobile .track-row:nth-child(n+25) { content-visibility: visible; contain-intrinsic-size: none; }
+
+/* phones draw no backdrop blur, so floating toasts and the song menu need a solid background or the list
+   underneath shows through their text (also when the UI transparency slider is turned down) */
+html.is-mobile .riff-toast,
+html.is-mobile .m3-dropdown-menu,
+html.is-mobile .track-context-menu { background: var(--md-sys-color-surface-container-highest-solid) !important; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+/* a long message wraps instead of being cut off at the screen edge */
+html.is-mobile .riff-toast { min-width: 0; max-width: 100%; border-radius: 22px; }
+html.is-mobile .riff-toast .toast-text { white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
+
+/* phones play through a plain <audio> element (no Web Audio graph, see mobile-ui.js), so the Enhance,
+   Effects and EQ tabs had controls that did nothing; Tempo (speed/pitch) and Sleep still work */
+html.is-mobile .audio-tab[data-audio-tab="enhance"],
+html.is-mobile .audio-tab[data-audio-tab="effects"],
+html.is-mobile .audio-tab[data-audio-tab="eq"],
+html.is-mobile .audio-panel[data-audio-panel="enhance"],
+html.is-mobile .audio-panel[data-audio-panel="effects"],
+html.is-mobile .audio-panel[data-audio-panel="eq"] { display: none !important; }
+
+/* no color-mix() in old Android WebViews (see the end of styles.css) */
+@supports not (color: color-mix(in srgb, red 50%, transparent)) {
+  html.is-mobile .sidebar { border-top: 1px solid rgba(255, 255, 255, .08); }
+  html.is-mobile .playbar::after { background: linear-gradient(90deg, var(--md-sys-color-primary) calc(var(--mini-progress, 0) * 100%), rgba(255, 255, 255, .12) 0); }
+  html.is-mobile #right-panel::before { background: rgba(255, 255, 255, .3); }
+  html.is-mobile #right-panel .lyric-line.active .lyric-word { color: rgba(255, 255, 255, .38); }
+}
+
+/* ---------- Riff 43 player & look on phones ----------
+   no Web Audio graph here (see mobile-ui.js), so the playbar visualizer settings had nothing to draw with;
+   the titlebar is the phone's top bar; the download's trim needs ffmpeg, which phones don't have ("Trim best part"
+   still works: it only skips through the song while it plays); there is no pointer to hover the karaoke top edge */
+html.is-mobile :is(#setting-hide-titlebar-row, #setting-bar-viz-pos, #setting-bar-viz-opacity, #setting-viz-connected, #download-trim-section, .tvk-top-hover-zone, .playbar-bg-visualizer) { display: none !important; }
+html.is-mobile .tvk-row:has(#btn-tvk-viz-connected) { display: none !important; }
+html.is-mobile .tvk-liquid-layer { animation: none !important; }
+html.is-mobile .nav-home-app-icon { width: 28px; height: 28px; border-radius: 8px; }
+html.is-mobile .tvk-progress-row { width: min(86vw, 360px); }
+html.is-mobile .cc-handle { width: 24px; }
+html.is-mobile .cc-handle-left { left: -12px; }
+html.is-mobile .cc-handle-right { right: -12px; }
+html.is-mobile .app-icon-picker-grid { grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); }
+
+/* song radio (#28): the queue's "Radio · song" label a little roomier for a finger */
+html.is-mobile .queue-radio-label { margin: 2px 0 10px; padding: 6px 12px 6px 10px; }
