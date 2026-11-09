@@ -376,23 +376,50 @@
     transform: scale(0.92) !important;
   }
 
-  .sidebar .nav-indicator,
+  /* Material 3 Tab Indicator Pills */
+  .sidebar .nav-item .nav-indicator,
   #nav-discover .nav-indicator {
-    width: auto !important;
-    height: auto !important;
-    border-radius: 0 !important;
+    width: 54px !important;
+    height: 30px !important;
+    border-radius: 16px !important;
     background: transparent !important;
     display: flex !important;
-    flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
+    transition: background 0.22s cubic-bezier(0.2, 0, 0, 1), transform 0.15s ease !important;
+    margin: 0 auto !important;
+  }
+  .sidebar .nav-item.active .nav-indicator,
+  #nav-discover.active .nav-indicator {
+    background: color-mix(in srgb, var(--md-sys-color-primary, #F48FB1) 22%, transparent) !important;
+  }
+
+  .sidebar .nav-item svg {
+    width: 22px !important;
+    height: 22px !important;
+    color: rgba(255, 255, 255, 0.45) !important;
+    stroke: currentColor !important;
+    fill: none !important;
+    transition: color 0.2s ease, stroke 0.2s ease !important;
+  }
+  .sidebar .nav-item.active svg,
+  .sidebar .nav-item.active .nav-indicator svg {
+    color: var(--md-sys-color-primary, #F48FB1) !important;
+    stroke: var(--md-sys-color-primary, #F48FB1) !important;
+    fill: none !important;
+  }
+  .sidebar .nav-item.active svg path,
+  .sidebar .nav-item.active svg circle,
+  .sidebar .nav-item.active svg polygon,
+  .sidebar .nav-item.active svg line {
+    stroke: var(--md-sys-color-primary, #F48FB1) !important;
   }
 
   /* Tab item text labels via .nav-label span */
   .sidebar .nav-item .nav-label {
     display: block !important;
-    font-size: 10px !important;
-    font-weight: 600 !important;
+    font-size: 10.5px !important;
+    font-weight: 500 !important;
     margin-top: 2px !important;
     color: rgba(255, 255, 255, 0.45) !important;
     letter-spacing: -0.15px !important;
@@ -400,21 +427,11 @@
     white-space: nowrap !important;
     text-align: center !important;
     pointer-events: none !important;
+    transition: color 0.2s ease !important;
   }
   .sidebar .nav-item.active .nav-label {
     color: var(--md-sys-color-primary, #F48FB1) !important;
-  }
-
-  .sidebar .nav-item svg {
-    width: 22px !important;
-    height: 22px !important;
-    color: rgba(255, 255, 255, 0.48) !important;
-    stroke: currentColor !important;
-    fill: none;
-  }
-  .sidebar .nav-item.active svg {
-    color: var(--md-sys-color-primary, #F48FB1) !important;
-    stroke: var(--md-sys-color-primary, #F48FB1) !important;
+    font-weight: 700 !important;
   }
 
   /* Raser Home Tab Icon */
@@ -424,16 +441,16 @@
   .nav-home-app-icon,
   #nav-home-app-icon {
     display: block !important;
-    width: 22px !important;
-    height: 22px !important;
+    width: 20px !important;
+    height: 20px !important;
     object-fit: contain !important;
-    opacity: 0.65 !important;
-    transition: opacity 0.18s ease, transform 0.18s ease !important;
+    opacity: 0.45 !important;
+    transition: opacity 0.2s ease, filter 0.2s ease !important;
   }
   .sidebar #nav-discover.active .nav-home-app-icon,
   .sidebar #nav-discover.active #nav-home-app-icon {
     opacity: 1 !important;
-    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--md-sys-color-primary, #F48FB1) 60%, transparent)) !important;
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--md-sys-color-primary, #F48FB1) 80%, transparent)) !important;
   }
 
   .sidebar .nav-badge {
@@ -619,47 +636,58 @@
   }
 
   body:not(.np-open) #btn-play-pause {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    background: var(--md-sys-color-primary, #F48FB1) !important;
+    color: var(--md-sys-color-on-primary, #0c0d12) !important;
+    border: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 3px 10px color-mix(in srgb, var(--md-sys-color-primary, #F48FB1) 35%, transparent) !important;
+    cursor: pointer !important;
+    transition: transform 0.15s ease, background-color 0.15s ease !important;
+    flex-shrink: 0 !important;
+  }
+  body:not(.np-open) #btn-play-pause:active {
+    transform: scale(0.92) !important;
+  }
+  body:not(.np-open) #btn-play-pause svg {
+    width: 18px !important;
+    height: 18px !important;
+    fill: currentColor !important;
+    stroke: none !important;
+    color: var(--md-sys-color-on-primary, #0c0d12) !important;
+  }
+
+  body:not(.np-open) #btn-next {
     width: 36px !important;
     height: 36px !important;
     min-width: 36px !important;
     min-height: 36px !important;
     padding: 0 !important;
     border-radius: 50% !important;
-    background: transparent !important;
+    background: var(--md-sys-color-surface-container-high, rgba(255, 255, 255, 0.08)) !important;
     border: none !important;
-    color: #ffffff !important;
+    color: var(--md-sys-color-on-surface, #ffffff) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     box-shadow: none !important;
     cursor: pointer !important;
+    transition: transform 0.15s ease !important;
+    flex-shrink: 0 !important;
   }
-  body:not(.np-open) #btn-play-pause svg {
-    width: 24px !important;
-    height: 24px !important;
-    fill: currentColor !important;
-    stroke: none !important;
-  }
-
-  body:not(.np-open) #btn-next {
-    width: 34px !important;
-    height: 34px !important;
-    min-width: 34px !important;
-    min-height: 34px !important;
-    padding: 0 !important;
-    border-radius: 50% !important;
-    background: transparent !important;
-    border: none !important;
-    color: #ffffff !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    box-shadow: none !important;
-    cursor: pointer !important;
+  body:not(.np-open) #btn-next:active {
+    transform: scale(0.92) !important;
   }
   body:not(.np-open) #btn-next svg {
-    width: 22px !important;
-    height: 22px !important;
+    width: 18px !important;
+    height: 18px !important;
     fill: currentColor !important;
     stroke: none !important;
   }
@@ -744,14 +772,18 @@
     z-index: 3400 !important;
     box-shadow: none !important;
     box-sizing: border-box !important;
-    background: rgba(14, 15, 20, 0.82) !important;
-    backdrop-filter: blur(48px) saturate(190%) !important;
-    -webkit-backdrop-filter: blur(48px) saturate(190%) !important;
+    background: #0c0d12 !important;
     transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
     display: flex !important;
     flex-direction: column !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
+  }
+
+  body.np-open #mobile-header {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
   }
 
   /* Ambient Track Banner in Now Playing Sheet */
@@ -761,15 +793,18 @@
     inset: 0 !important;
     pointer-events: none !important;
     z-index: 0 !important;
-    opacity: 0.55 !important;
+    opacity: 0.75 !important;
+    overflow: hidden !important;
   }
   .right-panel-banner .banner-image {
     position: absolute !important;
-    inset: -20% !important;
-    width: 140% !important;
-    height: 140% !important;
-    filter: blur(60px) saturate(1.6) !important;
-    opacity: 0.5 !important;
+    inset: -25% !important;
+    width: 150% !important;
+    height: 150% !important;
+    background-size: cover !important;
+    background-position: center !important;
+    filter: blur(75px) saturate(200%) brightness(0.85) !important;
+    opacity: 0.8 !important;
   }
 
   /* Closed sheet */
@@ -841,7 +876,8 @@
     box-shadow: none !important;
     filter: drop-shadow(0 16px 36px rgba(0, 0, 0, 0.65)) drop-shadow(0 0 28px color-mix(in srgb, var(--md-sys-color-primary, #F48FB1) 24%, transparent)) !important;
   }
-  body.m3-hero-covers-on #cover-container:not(.vinyl-mode) #right-panel-cover {
+  body.m3-hero-covers-on #cover-container:not(.vinyl-mode) #right-panel-cover,
+  body.m3-hero-covers-on #cover-container:not(.vinyl-mode) #right-panel-fallback {
     width: 100% !important;
     height: 100% !important;
     object-fit: cover !important;
@@ -855,7 +891,8 @@
     overflow: hidden !important;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6) !important;
   }
-  body:not(.m3-hero-covers-on) #cover-container:not(.vinyl-mode) #right-panel-cover {
+  body:not(.m3-hero-covers-on) #cover-container:not(.vinyl-mode) #right-panel-cover,
+  body:not(.m3-hero-covers-on) #cover-container:not(.vinyl-mode) #right-panel-fallback {
     width: 100% !important;
     height: 100% !important;
     object-fit: cover !important;
@@ -870,7 +907,8 @@
     box-shadow: 0 20px 48px rgba(0, 0, 0, 0.75), 0 0 30px rgba(0, 0, 0, 0.5) !important;
     filter: none !important;
   }
-  #cover-container.vinyl-mode #right-panel-cover {
+  #cover-container.vinyl-mode #right-panel-cover,
+  #cover-container.vinyl-mode #right-panel-fallback {
     clip-path: none !important;
     border-radius: 50% !important;
     width: 100% !important;
@@ -1059,28 +1097,47 @@
     align-items: center !important;
     justify-content: space-between !important;
     gap: 12px !important;
-    margin-bottom: 4px !important;
+    margin-bottom: 8px !important;
+    position: relative !important;
+    z-index: 10 !important;
   }
-  body.np-open #current-time,
-  body.np-open #total-time {
+  body.np-open .time-label,
+  body.np-open #time-current,
+  body.np-open #time-duration {
+    opacity: 1 !important;
     display: block !important;
-    font-size: 12px !important;
-    color: rgba(255, 255, 255, 0.5) !important;
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
+    color: rgba(255, 255, 255, 0.72) !important;
     font-variant-numeric: tabular-nums !important;
     flex-shrink: 0 !important;
-    min-width: 34px !important;
+    min-width: 38px !important;
+    pointer-events: auto !important;
   }
-  body.np-open #current-time {
+  body.np-open #time-current {
     text-align: left !important;
   }
-  body.np-open #total-time {
+  body.np-open #time-duration {
     text-align: right !important;
   }
   body.np-open .scrubber-track-container,
-  body.np-open .scrubber-track,
-  body.np-open input[type="range"]#scrubber {
+  body.np-open .scrubber-track {
     flex: 1 1 auto !important;
     width: 100% !important;
+    height: 32px !important;
+    position: relative !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    touch-action: none !important;
+  }
+  body.np-open .squiggly-canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    inset: 0 !important;
   }
 
   body.np-open .playback-controls {

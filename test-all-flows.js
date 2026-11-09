@@ -91,11 +91,35 @@ server.listen(4008, async () => {
 
     // 6. Simulate a track playing with metadata, morphing artwork & ambient glow
     await page.evaluate(() => {
+      // Realistic square album artwork
+      const coverCanvas = document.createElement('canvas');
+      coverCanvas.width = 500;
+      coverCanvas.height = 500;
+      const cCtx = coverCanvas.getContext('2d');
+      const grad = cCtx.createLinearGradient(0, 0, 500, 500);
+      grad.addColorStop(0, '#e53935');
+      grad.addColorStop(0.5, '#8e24aa');
+      grad.addColorStop(1, '#3949ab');
+      cCtx.fillStyle = grad;
+      cCtx.fillRect(0, 0, 500, 500);
+      cCtx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+      cCtx.lineWidth = 8;
+      cCtx.beginPath();
+      cCtx.arc(250, 250, 160, 0, Math.PI * 2);
+      cCtx.stroke();
+      cCtx.fillStyle = '#ffffff';
+      cCtx.font = 'bold 36px "Google Sans", sans-serif';
+      cCtx.textAlign = 'center';
+      cCtx.fillText('EVERGREY', 250, 235);
+      cCtx.font = '22px "Google Sans", sans-serif';
+      cCtx.fillText('Escape of the Phoenix', 250, 280);
+      const albumCover = coverCanvas.toDataURL('image/jpeg', 0.9);
+
       const track = {
         title: 'Escape of the Phoenix',
         artist: 'Evergrey',
         album: 'Escape of the Phoenix (2021)',
-        thumbnail: 'assets/icon-512x512.png'
+        thumbnail: albumCover
       };
       window.state = window.state || {};
       window.state.isPlaying = true;
@@ -119,6 +143,11 @@ server.listen(4008, async () => {
       if (rpCover) { rpCover.src = track.thumbnail; rpCover.style.display = 'block'; rpCover.classList.remove('hidden'); }
       if (rpFallback) { rpFallback.style.display = 'none'; }
 
+      const timeCur = document.getElementById('time-current');
+      const timeDur = document.getElementById('time-duration');
+      if (timeCur) timeCur.textContent = '1:24';
+      if (timeDur) timeDur.textContent = '3:52';
+
       document.body.classList.add('is-playing', 'm3-cover-on', 'm3-hero-covers-on');
 
       if (typeof window.m3cSetImage === 'function') window.m3cSetImage(track.thumbnail);
@@ -126,6 +155,7 @@ server.listen(4008, async () => {
       if (typeof window.m3cStart === 'function') window.m3cStart();
       if (typeof window.setCoverBg === 'function') window.setCoverBg(track.thumbnail);
       if (typeof window.setHomeAmbient === 'function') window.setHomeAmbient(track.thumbnail);
+      if (typeof window.updateRightPanelBanner === 'function') window.updateRightPanelBanner(track.thumbnail);
 
       document.getElementById('playbar').style.setProperty('--mini-progress', '0.35');
     });

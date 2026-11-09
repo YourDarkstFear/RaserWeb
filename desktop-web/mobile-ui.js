@@ -66,7 +66,35 @@
         item.appendChild(label);
       }
       label.textContent = item.getAttribute('title') || '';
+
+      item.addEventListener('click', () => {
+        navItems.forEach(n => n.classList.remove('active'));
+        item.classList.add('active');
+        if (navigator.vibrate) navigator.vibrate(6);
+      });
     });
+
+    // Keep bottom tab active states strictly in sync with the active view
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) {
+      const syncActiveTab = () => {
+        const activeView = mainContent.querySelector('.content-view.active');
+        if (!activeView) return;
+        const viewId = activeView.id.replace(/^view-/, '');
+        navItems.forEach(item => {
+          const itemKey = item.getAttribute('data-view') || (item.id === 'nav-discover' ? 'discover' : item.id.replace(/^nav-/, ''));
+          item.classList.toggle('active', itemKey === viewId);
+        });
+      };
+      new MutationObserver(syncActiveTab).observe(mainContent, { attributes: true, subtree: true, attributeFilter: ['class'] });
+      syncActiveTab();
+    }
+
+    // Avoid duplicate "Home" title right under mobile header
+    const spQuickTitle = document.querySelector('#sp-quick-sec h2 span');
+    if (spQuickTitle && spQuickTitle.textContent.trim() === 'Home') {
+      spQuickTitle.textContent = 'Quick play';
+    }
   }
 
   if (document.readyState === 'loading') {
@@ -226,6 +254,13 @@
       document.body.classList.add('np-open');
       if (typeof window.applyM3Cover === 'function') window.applyM3Cover();
       if (typeof window.m3cStart === 'function') window.m3cStart();
+      if (typeof window.resizeCanvases === 'function') window.resizeCanvases();
+      window.dispatchEvent(new Event('resize'));
+      const pbArt = document.getElementById('playbar-artwork');
+      const thumb = (window.state && window.state.currentTrack && window.state.currentTrack.thumbnail) || (pbArt && pbArt.src);
+      if (thumb && typeof window.updateRightPanelBanner === 'function') {
+        window.updateRightPanelBanner(thumb);
+      }
       if (navigator.vibrate) navigator.vibrate(8);
     };
 
@@ -439,6 +474,45 @@
       audio.addEventListener('timeupdate', tick);
       audio.addEventListener('emptied', tick);
       document.addEventListener('visibilitychange', tick);
+    }
+
+    // Touch scrubbing on Raser wavy progress bar in Now Playing sheet
+    const scrubberTrack = document.getElementById('scrubber-track');
+    if (scrubberTrack && audio) {
+      const seekFromTouch = (touch) => {
+        const rect = scrubberTrack.getBoundingClientRect();
+        if (rect.width <= 0) return;
+        const pos = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+        if (isFinite(audio.duration) && audio.duration > 0) {
+          audio.currentTime = pos * audio.duration;
+          const curr = document.getElementById('time-current');
+          if (curr) {
+            const m = Math.floor(audio.currentTime / 60);
+            const s = Math.floor(audio.currentTime % 60);
+            curr.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+          }
+          if (typeof window.resizeCanvases === 'function') window.resizeCanvases();
+        }
+      };
+
+      scrubberTrack.addEventListener('touchstart', (e) => {
+        if (!document.body.classList.contains('np-open')) return;
+        e.stopPropagation();
+        seekFromTouch(e.touches[0]);
+      }, { passive: false });
+
+      scrubberTrack.addEventListener('touchmove', (e) => {
+        if (!document.body.classList.contains('np-open')) return;
+        e.stopPropagation();
+        e.preventDefault();
+        seekFromTouch(e.touches[0]);
+      }, { passive: false });
+
+      scrubberTrack.addEventListener('touchend', (e) => {
+        if (!document.body.classList.contains('np-open')) return;
+        e.stopPropagation();
+        if (e.changedTouches && e.changedTouches[0]) seekFromTouch(e.changedTouches[0]);
+      });
     }
   }
 

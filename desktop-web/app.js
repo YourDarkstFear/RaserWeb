@@ -17152,6 +17152,10 @@ function bindCoverHoldZoom(wrapEl) {
     window.m3cSetImage = m3cSetImage;
     window.m3cStart = m3cStart;
     window.applyM3Cover = applyM3Cover;
+    window.setCoverBg = setCoverBg;
+    window.setHomeAmbient = setHomeAmbient;
+    window.updateRightPanelBanner = updateRightPanelBanner;
+    window.resizeCanvases = resizeCanvases;
     const wrap = document.getElementById('playbar-artwork-wrapper');
     if (wrap && !wrap._m3cHoverBound) {
       wrap._m3cHoverBound = true;
