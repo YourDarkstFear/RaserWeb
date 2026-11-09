@@ -4,6 +4,9 @@
   function checkMobile() {
     const isMobile = window.innerWidth <= 840 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
     document.documentElement.classList.toggle('is-mobile', isMobile);
+    if (!isMobile) {
+      document.body.classList.remove('np-open');
+    }
   }
   checkMobile();
   window.addEventListener('resize', checkMobile);
@@ -12,9 +15,11 @@
 
 (function initMobileDefaults() {
   const isMobile = window.innerWidth <= 840 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-  if (isMobile && !localStorage.getItem('riff_font_scale')) {
-    localStorage.setItem('riff_font_scale', '80');
-    document.documentElement.style.setProperty('--font-scale', '0.8');
+  if (isMobile) {
+    if (!localStorage.getItem('riff_font_scale')) {
+      localStorage.setItem('riff_font_scale', '80');
+      document.documentElement.style.setProperty('--font-scale', '0.8');
+    }
   }
 })();
 
@@ -26,36 +31,43 @@
     const audio = document.querySelector('audio');
     if (!panel || !playbar) return;
 
-    // Mirror drawer state onto <body> so CSS can switch styles
-    const sync = () => document.body.classList.toggle('np-open', !panel.classList.contains('hidden'));
-    new MutationObserver(sync).observe(panel, { attributes: true, attributeFilter: ['class'] });
-    sync();
+    // On mobile, ensure right-panel starts closed (hidden) unless opened
+    if (window.innerWidth <= 840 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) {
+      panel.classList.add('hidden');
+      document.body.classList.remove('np-open');
+    }
 
     const openSheet = () => {
-      if (panel.classList.contains('hidden')) {
-        if (lyricsBtn) lyricsBtn.click();
-        else panel.classList.remove('hidden');
-      }
+      panel.classList.remove('hidden');
+      document.body.classList.add('np-open');
     };
     const closeSheet = () => {
-      if (!panel.classList.contains('hidden')) {
-        const closeBtn = document.getElementById('btn-close-right-panel');
-        if (closeBtn) closeBtn.click();
-        else panel.classList.add('hidden');
-      }
+      panel.classList.add('hidden');
+      document.body.classList.remove('np-open');
     };
 
     // Tapping mini player (but not buttons or slider) opens the now-playing sheet
     playbar.addEventListener('click', (e) => {
+      if (window.innerWidth > 840 && !document.documentElement.classList.contains('is-mobile')) return;
       if (document.body.classList.contains('np-open')) return;
-      if (e.target.closest('button, input, .scrubber-track-container, .scrubber-bar-wrapper')) return;
+      if (e.target.closest('button, input, .scrubber-track-container, .scrubber-bar-wrapper, .playback-controls')) return;
       openSheet();
     });
+
+    const closeBtn = document.getElementById('btn-close-right-panel');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        if (window.innerWidth <= 840 || document.documentElement.classList.contains('is-mobile')) {
+          e.stopPropagation();
+          closeSheet();
+        }
+      });
+    }
 
     // Swipe down on now-playing sheet to close
     let startY = null;
     panel.addEventListener('touchstart', (e) => {
-      if (!document.documentElement.classList.contains('is-mobile')) return;
+      if (window.innerWidth > 840 && !document.documentElement.classList.contains('is-mobile')) return;
       const t = e.touches[0];
       const lyrics = document.getElementById('lyrics-container');
       if (e.target.closest('input[type="range"], .scrubber-track-container, [role="slider"]')) {
@@ -67,7 +79,7 @@
 
     let dragY = 0, dragRaf = 0;
     panel.addEventListener('touchmove', (e) => {
-      if (startY === null || !document.documentElement.classList.contains('is-mobile')) return;
+      if (startY === null || (window.innerWidth > 840 && !document.documentElement.classList.contains('is-mobile'))) return;
       dragY = Math.max(0, e.touches[0].clientY - startY);
       if (dragY > 0 && !panel.classList.contains('is-dragging')) panel.classList.add('is-dragging');
       if (!dragRaf) {
@@ -79,7 +91,7 @@
     }, { passive: true });
 
     panel.addEventListener('touchend', (e) => {
-      if (startY === null || !document.documentElement.classList.contains('is-mobile')) return;
+      if (startY === null || (window.innerWidth > 840 && !document.documentElement.classList.contains('is-mobile'))) return;
       const dy = e.changedTouches[0].clientY - startY;
       if (dragRaf) { cancelAnimationFrame(dragRaf); dragRaf = 0; }
       panel.classList.remove('is-dragging');
@@ -121,7 +133,7 @@
     if (cover) {
       let x0 = null, y0 = null, dx = 0, horizontal = null;
       cover.addEventListener('touchstart', (e) => {
-        if (!document.documentElement.classList.contains('is-mobile')) return;
+        if (window.innerWidth > 840 && !document.documentElement.classList.contains('is-mobile')) return;
         x0 = e.touches[0].clientX;
         y0 = e.touches[0].clientY;
         dx = 0;
@@ -130,7 +142,7 @@
       }, { passive: true });
 
       cover.addEventListener('touchmove', (e) => {
-        if (x0 === null || !document.documentElement.classList.contains('is-mobile')) return;
+        if (x0 === null || (window.innerWidth > 840 && !document.documentElement.classList.contains('is-mobile'))) return;
         dx = e.touches[0].clientX - x0;
         const dy = e.touches[0].clientY - y0;
         if (horizontal === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
@@ -142,7 +154,7 @@
       }, { passive: true });
 
       cover.addEventListener('touchend', () => {
-        if (x0 === null || !document.documentElement.classList.contains('is-mobile')) return;
+        if (x0 === null || (window.innerWidth > 840 && !document.documentElement.classList.contains('is-mobile'))) return;
         x0 = null;
         cover.style.transition = 'transform .32s cubic-bezier(.2,.8,.2,1), opacity .32s';
         if (horizontal && Math.abs(dx) > 70) {

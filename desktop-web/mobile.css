@@ -1,6 +1,6 @@
 /* ==========================================================================
    Raser Mobile Responsive Stylesheet
-   Adapts desktop layout to native mobile experience (Spotify / Apple Music style)
+   Pure valid CSS: Clean mobile layout for phone screens <= 840px and html.is-mobile
    ========================================================================== */
 
 :root {
@@ -10,23 +10,17 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Apply to both html.is-mobile and any screen <= 840px width */
-@media (max-width: 840px), (pointer: coarse) and (max-width: 1024px) {
-  html:not(.force-desktop) {
-    --tabbar-h: 56px;
-    --mini-h: 58px;
-    --safe-top: env(safe-area-inset-top, 0px);
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
+@media (max-width: 840px) {
+  html, body {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    position: relative !important;
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
   }
-}
 
-/* ==========================================================================
-   1. TOPBAR & SEARCH BAR OVERRIDES (No logo overlap, full width search)
-   ========================================================================== */
-html.is-mobile .titlebar,
-@media (max-width: 840px) {
+  /* 1. TOPBAR & SEARCH BOX */
   .titlebar {
     height: auto !important;
     min-height: 0 !important;
@@ -84,15 +78,10 @@ html.is-mobile .titlebar,
     padding: 2px 10px 2px 2px !important;
     flex-shrink: 0 !important;
   }
-}
 
-/* ==========================================================================
-   2. MAIN LAYOUT (Kill 84px left margin, full viewport width)
-   ========================================================================== */
-html.is-mobile body:not(.classic-sidebar):not(.mini) .app-layout,
-html.is-mobile .app-layout,
-@media (max-width: 840px) {
+  /* 2. MAIN LAYOUT (Kill 84px desktop margin) */
   body:not(.classic-sidebar):not(.mini) .app-layout,
+  body.hide-titlebar:not(.classic-sidebar):not(.mini) .app-layout,
   .app-layout {
     position: static !important;
     inset: auto !important;
@@ -111,27 +100,23 @@ html.is-mobile .app-layout,
   }
 
   body:not(.classic-sidebar):not(.mini) .main-content,
+  #main-content,
   .main-content {
     margin: 0 !important;
     margin-left: 0 !important;
     width: 100% !important;
-    max-width: 100% !important;
+    max-width: 100vw !important;
     border-radius: 0 !important;
-    padding: 10px 14px calc(var(--tabbar-h, 56px) + var(--mini-h, 58px) + var(--safe-bottom, 0px) + 24px) 14px !important;
+    padding: 8px 14px calc(var(--tabbar-h, 56px) + var(--mini-h, 58px) + var(--safe-bottom, 0px) + 24px) 14px !important;
     background: transparent !important;
     box-sizing: border-box !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
   }
-}
 
-/* ==========================================================================
-   3. BOTTOM TAB BAR (Bottom Navigation, override desktop sidebar entirely)
-   ========================================================================== */
-html.is-mobile body:not(.classic-sidebar):not(.mini) .sidebar,
-html.is-mobile .sidebar,
-@media (max-width: 840px) {
+  /* 3. BOTTOM TAB BAR (Sidebar becomes bottom nav) */
   body:not(.classic-sidebar):not(.mini) .sidebar,
+  aside.sidebar,
   .sidebar {
     position: fixed !important;
     left: 0 !important;
@@ -144,20 +129,19 @@ html.is-mobile .sidebar,
     min-height: calc(var(--tabbar-h, 56px) + var(--safe-bottom, 0px)) !important;
     max-height: calc(var(--tabbar-h, 56px) + var(--safe-bottom, 0px)) !important;
     margin: 0 !important;
-    padding: 0 8px var(--safe-bottom, 0px) !important;
+    padding: 0 8px var(--safe-bottom, 0px) 8px !important;
     border-radius: 0 !important;
     border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-    background: var(--md-sys-color-surface-container-solid, #141418) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
+    background: #141418 !important;
     flex-direction: row !important;
     justify-content: space-around !important;
     align-items: center !important;
     gap: 0 !important;
     z-index: 3200 !important;
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.35) !important;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4) !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
+    display: flex !important;
   }
 
   body:not(.classic-sidebar):not(.mini) .sidebar::before,
@@ -208,10 +192,7 @@ html.is-mobile .sidebar,
     justify-content: center !important;
     background: transparent !important;
     transition: transform 0.15s ease !important;
-  }
-  .nav-item:active,
-  .rail-icon-btn:active {
-    transform: scale(0.9) !important;
+    flex-shrink: 0 !important;
   }
 
   body:not(.classic-sidebar):not(.mini) #nav-discover,
@@ -244,13 +225,8 @@ html.is-mobile .sidebar,
     min-height: 24px !important;
     border-radius: 6px !important;
   }
-}
 
-/* ==========================================================================
-   4. FLOATING MINI PLAYER (Docks above bottom tab bar)
-   ========================================================================== */
-html.is-mobile .playbar,
-@media (max-width: 840px) {
+  /* 4. FLOATING MINI PLAYER (Docks above bottom tab bar) */
   .playbar {
     position: fixed !important;
     left: 8px !important;
@@ -261,8 +237,8 @@ html.is-mobile .playbar,
     height: var(--mini-h, 58px) !important;
     padding: 0 10px !important;
     border-radius: 20px !important;
-    background: var(--md-sys-color-surface-container-highest-solid, #1e1f25) !important;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+    background: #1e1f25 !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
     display: flex !important;
     align-items: center !important;
     gap: 8px !important;
@@ -341,7 +317,6 @@ html.is-mobile .playbar,
     height: 36px !important;
   }
 
-  /* Thin progress line along the bottom of the floating mini player */
   .playbar::after {
     content: '';
     position: absolute;
@@ -352,13 +327,8 @@ html.is-mobile .playbar,
     border-radius: 1px;
     background: linear-gradient(90deg, var(--md-sys-color-primary) calc(var(--mini-progress, 0) * 100%), rgba(255, 255, 255, 0.12) 0);
   }
-}
 
-/* ==========================================================================
-   5. NOW-PLAYING FULL SCREEN SHEET (Bottom sheet slide-up)
-   ========================================================================== */
-html.is-mobile #right-panel,
-@media (max-width: 840px) {
+  /* 5. NOW PLAYING SHEET (#right-panel) */
   #right-panel {
     position: fixed !important;
     inset: 0 !important;
@@ -371,35 +341,27 @@ html.is-mobile #right-panel,
     max-width: 100% !important;
     max-height: 100% !important;
     border-radius: 0 !important;
-    padding: calc(var(--safe-top, 0px) + 16px) 20px calc(var(--safe-bottom, 0px) + 160px) 20px !important;
+    padding: calc(var(--safe-top, 0px) + 16px) 20px 180px 20px !important;
     z-index: 3400 !important;
     box-shadow: none !important;
     box-sizing: border-box !important;
-    background: var(--md-sys-color-surface-container-solid, #0f0f13) !important;
+    background: #0f0f13 !important;
     transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
     display: flex !important;
     flex-direction: column !important;
     overflow-y: auto !important;
   }
 
-  #right-panel.hidden {
+  #right-panel.hidden,
+  body:not(.np-open) #right-panel {
     transform: translateY(100%) !important;
-    opacity: 1 !important;
+    display: none !important;
+    opacity: 0 !important;
     pointer-events: none !important;
   }
 
-  /* Top drag handle indicator */
-  #right-panel::before {
-    content: '';
-    position: absolute;
-    top: calc(var(--safe-top, 0px) + 8px);
-    left: 50%;
-    width: 44px;
-    height: 5px;
-    margin-left: -22px;
-    border-radius: 3px;
-    background: rgba(255, 255, 255, 0.28);
-    pointer-events: none;
+  #right-panel .titlebar-controls {
+    display: none !important;
   }
 
   .cover-container,
@@ -411,7 +373,6 @@ html.is-mobile #right-panel,
     border-radius: 16px !important;
   }
 
-  /* When Now Playing sheet is open, dock player controls at the bottom of the sheet */
   body.np-open .playbar {
     z-index: 3500 !important;
     left: 0 !important;
@@ -479,19 +440,13 @@ html.is-mobile #right-panel,
     display: none !important;
   }
 
-  /* Hide sidebar and header while full-screen now-playing is open */
   body.np-open .sidebar,
   body.np-open .titlebar {
     visibility: hidden !important;
     pointer-events: none !important;
   }
-}
 
-/* ==========================================================================
-   6. SPOTIFY BANNER & CARDS RESPONSIVE TUNING
-   ========================================================================== */
-html.is-mobile .spotify-promo,
-@media (max-width: 840px) {
+  /* 6. SPOTIFY BANNER & GRIDS */
   .spotify-promo {
     flex-direction: column !important;
     align-items: flex-start !important;
@@ -502,10 +457,6 @@ html.is-mobile .spotify-promo,
     border-radius: 20px !important;
     position: relative !important;
   }
-  .spotify-promo-art {
-    width: 52px !important;
-    height: 52px !important;
-  }
   .spotify-promo-text {
     width: 100% !important;
   }
@@ -513,14 +464,10 @@ html.is-mobile .spotify-promo,
     font-size: 15px !important;
     line-height: 1.3 !important;
   }
-  .spotify-promo-sub {
-    font-size: 12px !important;
-  }
   .spotify-promo-btn {
     width: 100% !important;
     height: 40px !important;
     margin-top: 4px !important;
-    border-radius: 20px !important;
   }
   .spotify-promo-close {
     position: absolute !important;
@@ -528,7 +475,6 @@ html.is-mobile .spotify-promo,
     right: 12px !important;
   }
 
-  /* Grid cards on mobile (2 columns) */
   .sp-row {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 12px !important;
@@ -536,8 +482,5 @@ html.is-mobile .spotify-promo,
   .sp-card {
     padding: 10px !important;
     border-radius: 14px !important;
-  }
-  .sp-card-art-wrap {
-    border-radius: 10px !important;
   }
 }
