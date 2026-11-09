@@ -40,6 +40,30 @@
   <div class="crt-overlay hidden" id="crt-overlay"></div>
   <div class="grain-overlay hidden" id="grain-overlay"></div>
 
+  <header class="mobile-header" id="mobile-header">
+    <div class="mobile-header-top">
+      <div class="mobile-brand-title">
+        <img class="mobile-brand-logo" src="assets/raser.svg" alt="Raser" />
+        <h1 class="mobile-page-title" id="mobile-page-title">Home</h1>
+      </div>
+      <div class="mobile-header-actions">
+        <button class="mobile-avatar-btn" id="mobile-btn-account" type="button" aria-label="Raser Account" title="Raser Account">
+          <span class="mobile-avatar-circle" id="mobile-avatar-circle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </span>
+          <span class="mobile-sync-dot" id="mobile-sync-dot" title="Cloud Sync"></span>
+        </button>
+      </div>
+    </div>
+    <div class="mobile-search-row">
+      <div class="mobile-search-box">
+        <svg class="mobile-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
+        <input type="text" id="mobile-search-input" placeholder="Search tracks, artists, or albums..." autocomplete="off">
+        <button id="mobile-search-clear" class="mobile-search-clear hidden" type="button" aria-label="Clear"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+    </div>
+  </header>
+
   <header class="titlebar" id="titlebar">
     <div class="titlebar-drag">
       <div class="app-logo" aria-label="Raser"><span class="titlebar-raser-icon titlebar-riff-icon"></span></div>
@@ -118,7 +142,7 @@
 
         <button class="nav-item active" data-view="discover" id="nav-discover" title="Home">
           <div class="nav-indicator">
-            <img id="nav-home-app-icon" class="nav-home-app-icon" src="../../assets/raser.svg" alt="Home" draggable="false" />
+            <img id="nav-home-app-icon" class="nav-home-app-icon" src="assets/raser.svg" alt="Home" draggable="false" />
           </div>
         </button>
 
