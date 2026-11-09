@@ -16947,12 +16947,13 @@ function bindCoverHoldZoom(wrapEl) {
     { id: '19-horizon.svg', label: 'Horizon' }
   ];
   function resolveAppIconSrc(val) {
-    if (!val) return '../../assets/02-editor.svg';
+    if (!val || val === '02-editor.svg') return '../../assets/raser.svg';
     if (val.startsWith('file:') || val.startsWith('http') || val.startsWith('data:')) return val;
     return '../../assets/' + val.replace(/^.*assets\//, '');
   }
   function applyHomeAppIcon(val) {
-    const chosen = val || localStorage.getItem('riff_app_icon') || '02-editor.svg';
+    let chosen = val || localStorage.getItem('riff_app_icon');
+    if (!chosen || chosen === '02-editor.svg') chosen = 'raser.svg';
     localStorage.setItem('riff_app_icon', chosen);
     const homeImg = document.getElementById('nav-home-app-icon');
     if (homeImg) homeImg.src = resolveAppIconSrc(chosen);
@@ -16965,7 +16966,11 @@ function bindCoverHoldZoom(wrapEl) {
   }
   function initAppIconPicker() {
     const grid = document.getElementById('app-icon-picker-grid');
-    const saved = localStorage.getItem('riff_app_icon') || '02-editor.svg';
+    let saved = localStorage.getItem('riff_app_icon');
+    if (!saved || saved === '02-editor.svg') {
+      saved = 'raser.svg';
+      localStorage.setItem('riff_app_icon', 'raser.svg');
+    }
     if (grid) {
       grid.innerHTML = '';
       RIFF_APP_ICONS.forEach(item => {
