@@ -301,24 +301,53 @@
 
         let shouldUpload = false;
 
-        // Playlists
+        // Playlists: Smart merge so no playlists are ever lost
         if (cloudPlaylists.length === 0 && localPlaylists.length > 0) {
           shouldUpload = true;
         } else if (cloudPlaylists.length > 0) {
+          if (localPlaylists.length > 0) {
+            const cloudIds = new Set(cloudPlaylists.map(p => p.id || p.name));
+            const uniqueLocal = localPlaylists.filter(p => !cloudIds.has(p.id || p.name));
+            if (uniqueLocal.length > 0) {
+              cloudPlaylists.push(...uniqueLocal);
+              shouldUpload = true;
+            }
+          }
           setLocalJSON('devsize_playlists', cloudPlaylists);
         }
 
-        // Favorites
+        // Favorites: Smart union
         if (cloudFavorites.length === 0 && localFavorites.length > 0) {
           shouldUpload = true;
         } else if (cloudFavorites.length > 0) {
+          if (localFavorites.length > 0) {
+            const cloudTrackIds = new Set(cloudFavorites.map(t => t.id || t.title));
+            const uniqueLocalFavs = localFavorites.filter(t => !cloudTrackIds.has(t.id || t.title));
+            if (uniqueLocalFavs.length > 0) {
+              cloudFavorites.push(...uniqueLocalFavs);
+              shouldUpload = true;
+            }
+          }
           setLocalJSON('devsize_favorites', cloudFavorites);
         }
 
-        // History
+        // History: Smart merge (unique tracks, recent first)
         if (cloudHistory.length === 0 && localHistory.length > 0) {
           shouldUpload = true;
         } else if (cloudHistory.length > 0) {
+          if (localHistory.length > 0) {
+            const seen = new Set();
+            const mergedHist = [];
+            for (const item of [...localHistory, ...cloudHistory]) {
+              const key = item.id || item.title;
+              if (key && !seen.has(key)) {
+                seen.add(key);
+                mergedHist.push(item);
+              }
+            }
+            cloudHistory = mergedHist.slice(0, 100);
+            shouldUpload = true;
+          }
           setLocalJSON('devsize_history', cloudHistory);
         }
 
