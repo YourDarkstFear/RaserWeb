@@ -123,8 +123,41 @@
     }
 
 
+    _hasActiveEffects() {
+      if (this.hqEnabled) return true;
+      const s = this.audioSettings;
+      if (!s) return false;
+      if ((s.reverb && s.reverb > 0) || (s.distortion && s.distortion > 0) || (s.echo && s.echo > 0)) return true;
+      if (s.eq && (s.eq.low !== 0 || s.eq.mid !== 0 || s.eq.high !== 0)) return true;
+      if (s.eqBands && s.eqBands.some(v => v !== 0)) return true;
+      return false;
+    }
+
+    _ensureGraphIfNeeded() {
+      if (!this.graphInitialized && this._attachedElement && this._hasActiveEffects()) {
+        this.init(this._attachedElement);
+      }
+    }
+
     init(audioElement) {
       if (!audioElement) return;
+
+      this._attachedElement = audioElement;
+
+      const isMobileDevice = typeof window !== 'undefined' && (
+        window.innerWidth <= 840 ||
+        /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+        (document.documentElement && document.documentElement.classList.contains('is-mobile'))
+      );
+
+      // On mobile devices, bypass Web Audio graph when no DSP effects are active.
+      // This prevents 2.6ms buffer starvation (cızırtı / clicks), supports OS hardware decoding,
+      // and allows seamless background / lock screen playback without OS thread suspension (Muriel APK pattern).
+      if (isMobileDevice && !this._hasActiveEffects() && !this.graphInitialized) {
+        this.applySettings(audioElement);
+        this._applyMasterVolume();
+        return;
+      }
 
       if (this.ctx) {
         if (!audioElement.paused && this.ctx.state === 'suspended') {
@@ -384,6 +417,7 @@
 
     setHqEnabled(enabled) {
       this.hqEnabled = enabled;
+      this._ensureGraphIfNeeded();
       if (this.graphInitialized) {
         this._updateRouting();
         this._applyHqParams();
@@ -392,6 +426,7 @@
 
     setHqSettings(settings) {
       Object.assign(this.hqSettings, settings);
+      this._ensureGraphIfNeeded();
       if (this.graphInitialized) this._applyHqParams();
     }
 
@@ -444,6 +479,7 @@
 
     setAudioSettings(settings) {
       Object.assign(this.audioSettings, settings);
+      this._ensureGraphIfNeeded();
       this.applySettings();
     }
 
@@ -454,6 +490,7 @@
       if (eq.low !== undefined) this.audioSettings.eq.low = clamp(eq.low);
       if (eq.mid !== undefined) this.audioSettings.eq.mid = clamp(eq.mid);
       if (eq.high !== undefined) this.audioSettings.eq.high = clamp(eq.high);
+      this._ensureGraphIfNeeded();
       if (this.eqLow) this.eqLow.gain.value = this.audioSettings.eq.low;
       if (this.eqMid) this.eqMid.gain.value = this.audioSettings.eq.mid;
       if (this.eqHigh) this.eqHigh.gain.value = this.audioSettings.eq.high;
@@ -469,6 +506,10 @@
       for (let i = 0; i < 10; i++) {
         const val = clamp(gains[i]);
         this.audioSettings.eqBands[i] = val;
+      }
+      this._ensureGraphIfNeeded();
+      for (let i = 0; i < 10; i++) {
+        const val = this.audioSettings.eqBands[i];
         if (this.eqBands && this.eqBands[i]) {
           if (this.ctx && this.eqBands[i].gain.setTargetAtTime) {
             this.eqBands[i].gain.setTargetAtTime(val, this.ctx.currentTime, 0.02);

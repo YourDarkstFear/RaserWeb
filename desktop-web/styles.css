@@ -7530,6 +7530,7 @@ body.mini.mini-lyrics-on #btn-mini-lyrics {
 .settings-layout { display: flex; gap: 20px; align-items: flex-start; }
 .settings-nav { position: sticky; top: 0; flex: 0 0 200px; display: flex; flex-direction: column; gap: 4px; max-height: calc(100vh - 120px); overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; background: var(--md-sys-color-surface-container-low); border-radius: 24px; padding: 8px; box-sizing: border-box; }
 .settings-nav::-webkit-scrollbar { display: none; }
+.settings-nav-chips { display: flex; flex-direction: column; gap: 4px; width: 100%; }
 @keyframes m3-sidebar-tab-jelly {
   0% { transform: scale(1); }
   100% { transform: scale(1); }

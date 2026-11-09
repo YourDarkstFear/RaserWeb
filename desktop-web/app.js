@@ -14140,7 +14140,7 @@ function renderClickableArtists(container, rawArtist, hintTrack = null) {
             if (el.viewSettings) el.viewSettings.classList.add('active');
             if (el.navSettings) el.navSettings.classList.add('active');
             const savedCat = localStorage.getItem('riff_settings_cat');
-            showSettingsCategory((savedCat === 'overview' || !savedCat) ? 'home' : savedCat);
+            showSettingsCategory((savedCat === 'overview' || savedCat === 'home' || !savedCat) ? 'interface' : savedCat);
             updateOfflineStorageUI();
             updateMusicFolderUI();
   updateDownloadFolderUI();
@@ -17261,7 +17261,7 @@ function bindCoverHoldZoom(wrapEl) {
   function m3cEnabled() {
     const barOn = localStorage.getItem('riff_m3_cover') !== '0';
     const heroOn = localStorage.getItem('riff_m3_hero_covers') !== '0';
-    return (barOn || heroOn) && !document.body.classList.contains('perf');
+    return (barOn || heroOn);
   }
   function m3cInit() {
     m3c.canvas = document.getElementById('m3c-canvas');
@@ -17355,7 +17355,7 @@ function bindCoverHoldZoom(wrapEl) {
     ctx.closePath();
     ctx.clip();
     const heroPath = document.getElementById('m3-hero-shape-path');
-    if (heroPath && document.body.classList.contains('m3-hero-covers-on') && !document.body.classList.contains('perf')) {
+    if (heroPath && document.body.classList.contains('m3-hero-covers-on')) {
       const baseScale = (COVER_PX / 2) / 160 * 1.02;
       let heroD = '';
       for (let k = 0; k <= K; k++) {
@@ -18023,7 +18023,7 @@ function bindCoverHoldZoom(wrapEl) {
   }
 
   function showSettingsCategory(cat) {
-    if (cat === 'appearance' || cat === 'overview' || !cat) cat = 'home';
+    if (cat === 'appearance' || cat === 'overview' || cat === 'home' || !cat) cat = 'interface';
     document.querySelectorAll('#view-settings .setting-item.hidden').forEach(i => i.classList.remove('hidden'));
     document.querySelectorAll('#view-settings .settings-section').forEach(s => s.classList.toggle('cat-hidden', s.dataset.cat !== cat));
     document.querySelectorAll('#settings-nav .settings-nav-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
@@ -18046,6 +18046,7 @@ function bindCoverHoldZoom(wrapEl) {
       if (!q) {
         sections.forEach(sec => {
           sec.style.display = '';
+          sec.classList.toggle('cat-hidden', sec.dataset.cat !== activeCat);
           sec.classList.toggle('active', sec.dataset.cat === activeCat);
           sec.querySelectorAll('.setting-item, .m3-group, .settings-section-title, details, .ct-head, .ct-list, .about-hero').forEach(elNode => {
             elNode.style.display = '';
@@ -18077,9 +18078,11 @@ function bindCoverHoldZoom(wrapEl) {
         });
 
         if (sectionMatchCount > 0) {
+          sec.classList.remove('cat-hidden');
           sec.classList.add('active');
           sec.style.display = 'block';
         } else {
+          sec.classList.add('cat-hidden');
           sec.classList.remove('active');
           sec.style.display = 'none';
         }
@@ -27404,7 +27407,7 @@ function bindCoverHoldZoom(wrapEl) {
   initProxyManager();
   initSongQualitySetting();
   const initCat = localStorage.getItem('riff_settings_cat');
-  showSettingsCategory((initCat === 'overview' || !initCat) ? 'home' : initCat);
+  showSettingsCategory((initCat === 'overview' || initCat === 'home' || !initCat) ? 'interface' : initCat);
   refreshStacks();
   requestAnimationFrame(() => requestAnimationFrame(refreshStacks));
   initTvk();
