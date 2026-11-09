@@ -64,6 +64,16 @@
       });
     }
 
+    // Tapping top drag handle area also closes the sheet
+    panel.addEventListener('click', (e) => {
+      if (window.innerWidth > 840 && !document.documentElement.classList.contains('is-mobile')) return;
+      if (!document.body.classList.contains('np-open')) return;
+      const rect = panel.getBoundingClientRect();
+      if (e.clientY - rect.top < 34 && !e.target.closest('button, a, input')) {
+        closeSheet();
+      }
+    });
+
     // Swipe down on now-playing sheet to close
     let startY = null;
     panel.addEventListener('touchstart', (e) => {
