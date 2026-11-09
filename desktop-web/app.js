@@ -905,9 +905,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     themeMode: localStorage.getItem('riff_theme_mode') || 'dark',
     paletteStyle: localStorage.getItem('riff_palette_style') || 'classic',
     meshBrightness: parseInt(localStorage.getItem('riff_mesh_brightness') || '100', 10),
-    themeAccent: localStorage.getItem('riff_theme_accent') || '#6750A4',
-    themeIntensity: parseInt(localStorage.getItem('riff_theme_intensity') || '0'),
-    themeBrightness: parseInt(localStorage.getItem('riff_theme_brightness') || '0'),
+    themeAccent: localStorage.getItem('riff_theme_accent') || '#F48FB1',
+    themeIntensity: parseInt(localStorage.getItem('riff_theme_intensity') || '80', 10),
+    themeBrightness: parseInt(localStorage.getItem('riff_theme_brightness') || '50', 10),
     trEnabled: localStorage.getItem('riff_tr_enabled') === 'true',
     trLang: localStorage.getItem('riff_tr_lang') || 'en',
     lyricsTranslationLang: localStorage.getItem('riff_tr_lang') || 'en',
@@ -1957,24 +1957,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const rgb = hexToRgb(hexColor);
     const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-    if (el.sliderHue) el.sliderHue.value = hsl.h;
-    if (el.valHue) el.valHue.textContent = hsl.h + '°';
+    if (el.sliderHue && document.activeElement !== el.sliderHue) el.sliderHue.value = hsl.h;
+    if (el.valHue) el.valHue.textContent = (document.activeElement === el.sliderHue && el.sliderHue ? el.sliderHue.value : hsl.h) + '°';
 
     if (el.sliderIntensity) {
       el.sliderIntensity.disabled = isAuto;
-      el.sliderIntensity.value = intensity;
+      if (document.activeElement !== el.sliderIntensity) el.sliderIntensity.value = intensity;
       const parent = el.sliderIntensity.closest('.setting-item');
       if (parent) parent.classList.toggle('is-disabled', isAuto);
     }
-    if (el.valIntensity) el.valIntensity.textContent = intensity + '%';
+    if (el.valIntensity) el.valIntensity.textContent = (document.activeElement === el.sliderIntensity && el.sliderIntensity ? el.sliderIntensity.value : intensity) + '%';
 
     if (el.sliderBrightness) {
       el.sliderBrightness.disabled = isAuto;
-      el.sliderBrightness.value = brightness;
+      if (document.activeElement !== el.sliderBrightness) el.sliderBrightness.value = brightness;
       const parent = el.sliderBrightness.closest('.setting-item');
       if (parent) parent.classList.toggle('is-disabled', isAuto);
     }
-    if (el.valBrightness) el.valBrightness.textContent = brightness + '%';
+    if (el.valBrightness) el.valBrightness.textContent = (document.activeElement === el.sliderBrightness && el.sliderBrightness ? el.sliderBrightness.value : brightness) + '%';
 
     let resolvedAccent2 = accent2;
     if (!resolvedAccent2) {
@@ -15735,11 +15735,22 @@ function bindCoverHoldZoom(wrapEl) {
     });
   }
 
+  function ensureVividTheme() {
+    if (state.themeIntensity < 8) {
+      state.themeIntensity = 80;
+      localStorage.setItem('riff_theme_intensity', '80');
+      if (el.sliderIntensity) el.sliderIntensity.value = 80;
+      if (el.valIntensity) el.valIntensity.textContent = '80%';
+      document.body.classList.remove('intensity-zero');
+    }
+  }
+
   if (el.themeSwatches) {
     el.themeSwatches.forEach(sw => {
       sw.addEventListener('click', () => {
         state.themeAccent = sw.dataset.color;
         localStorage.setItem('riff_theme_accent', state.themeAccent);
+        ensureVividTheme();
         if (state.themeMode === 'auto') {
           const targetMode = currentEffectiveMode || 'dark';
           state.themeMode = targetMode;
@@ -15755,6 +15766,7 @@ function bindCoverHoldZoom(wrapEl) {
       if (!/^#[0-9a-f]{6}$/i.test(value)) return;
       state.themeAccent = value.toLowerCase();
       localStorage.setItem('riff_theme_accent', state.themeAccent);
+      ensureVividTheme();
       if (state.themeMode === 'auto') {
         const targetMode = currentEffectiveMode || 'dark';
         state.themeMode = targetMode;
@@ -15768,56 +15780,81 @@ function bindCoverHoldZoom(wrapEl) {
   }
 
   if (el.sliderHue) {
+    let hueRaf = 0;
     const onHueChange = (e) => {
       const h = parseInt(e.target.value, 10);
       if (el.valHue) el.valHue.textContent = h + '°';
       state.themeAccent = hslToHex(h, 65, 55);
-      localStorage.setItem('riff_theme_accent', state.themeAccent);
+      ensureVividTheme();
       if (state.themeMode === 'auto') {
         const targetMode = currentEffectiveMode || 'dark';
         state.themeMode = targetMode;
         localStorage.setItem('riff_theme_mode', targetMode);
       }
-      updateThemeFromState();
       if (el.themeSwatches) el.themeSwatches.forEach(sw => sw.classList.remove('active'));
+      if (!hueRaf) {
+        hueRaf = requestAnimationFrame(() => {
+          hueRaf = 0;
+          updateThemeFromState();
+        });
+      }
     };
     el.sliderHue.addEventListener('input', onHueChange);
-    el.sliderHue.addEventListener('change', onHueChange);
+    el.sliderHue.addEventListener('change', (e) => {
+      onHueChange(e);
+      localStorage.setItem('riff_theme_accent', state.themeAccent);
+    });
   }
 
   if (el.sliderIntensity) {
+    let intensityRaf = 0;
     const onIntensityChange = (e) => {
       const val = parseInt(e.target.value, 10);
       state.themeIntensity = val;
       document.body.classList.toggle('intensity-zero', state.themeIntensity < 5);
       if (el.valIntensity) el.valIntensity.textContent = val + '%';
-      localStorage.setItem('riff_theme_intensity', val.toString());
       if (state.themeMode === 'auto') {
         const targetMode = currentEffectiveMode || 'dark';
         state.themeMode = targetMode;
         localStorage.setItem('riff_theme_mode', targetMode);
       }
-      updateThemeFromState();
+      if (!intensityRaf) {
+        intensityRaf = requestAnimationFrame(() => {
+          intensityRaf = 0;
+          updateThemeFromState();
+        });
+      }
     };
     el.sliderIntensity.addEventListener('input', onIntensityChange);
-    el.sliderIntensity.addEventListener('change', onIntensityChange);
+    el.sliderIntensity.addEventListener('change', (e) => {
+      onIntensityChange(e);
+      localStorage.setItem('riff_theme_intensity', state.themeIntensity.toString());
+    });
   }
 
   if (el.sliderBrightness) {
+    let brightnessRaf = 0;
     const onBrightnessChange = (e) => {
       const val = parseInt(e.target.value, 10);
       state.themeBrightness = val;
       if (el.valBrightness) el.valBrightness.textContent = val + '%';
-      localStorage.setItem('riff_theme_brightness', val.toString());
       if (state.themeMode === 'auto') {
         const targetMode = currentEffectiveMode || 'dark';
         state.themeMode = targetMode;
         localStorage.setItem('riff_theme_mode', targetMode);
       }
-      updateThemeFromState();
+      if (!brightnessRaf) {
+        brightnessRaf = requestAnimationFrame(() => {
+          brightnessRaf = 0;
+          updateThemeFromState();
+        });
+      }
     };
     el.sliderBrightness.addEventListener('input', onBrightnessChange);
-    el.sliderBrightness.addEventListener('change', onBrightnessChange);
+    el.sliderBrightness.addEventListener('change', (e) => {
+      onBrightnessChange(e);
+      localStorage.setItem('riff_theme_brightness', state.themeBrightness.toString());
+    });
   }
 
   if (el.sliderScale) {
