@@ -1165,7 +1165,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       navigator.mediaSession.setActionHandler('seekto', (details) => {
         if (details.seekTime !== undefined && details.seekTime !== null) {
           const audio = (state.secondaryAudio && !state.secondaryAudio.paused) ? state.secondaryAudio : el.nativeAudio;
-          if (audio) audio.currentTime = details.seekTime;
+          if (audio === el.nativeAudio) {
+            safeSeekTo(details.seekTime);
+          } else if (audio) {
+            audio.currentTime = details.seekTime;
+          }
           if (typeof updateSyncedLyricsHighlight === 'function') {
             updateSyncedLyricsHighlight(details.seekTime);
           }
@@ -4477,6 +4481,111 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // --- HYBRID FAST IN-MEMORY AUDIO BLOB CACHE ---
+  const trackBlobMemoryCache = new Map(); // canonicalId -> { blob, blobUrl, size, lastAccessed }
+  const MAX_BLOB_CACHE_ENTRIES = 12;
+  const inflightBlobDownloads = new Map(); // canonicalId -> Promise<entry>
+
+  function freeBlobCacheEntry(key) {
+    const entry = trackBlobMemoryCache.get(key);
+    if (entry) {
+      if (entry.blobUrl) {
+        try { URL.revokeObjectURL(entry.blobUrl); } catch (_) {}
+      }
+      trackBlobMemoryCache.delete(key);
+    }
+  }
+
+  function evictOldestBlobIfNeeded() {
+    if (trackBlobMemoryCache.size < MAX_BLOB_CACHE_ENTRIES) return;
+    const currentId = state.currentTrack ? getTrackCanonicalId(state.currentTrack) : null;
+    let oldestKey = null;
+    let oldestTime = Infinity;
+    for (const [key, item] of trackBlobMemoryCache.entries()) {
+      if (key !== currentId && item.lastAccessed < oldestTime) {
+        oldestTime = item.lastAccessed;
+        oldestKey = key;
+      }
+    }
+    if (oldestKey) freeBlobCacheEntry(oldestKey);
+  }
+
+  async function bufferTrackToBlob(track, streamUrl, signal = null) {
+    if (!track || !streamUrl || streamUrl.includes('.m3u8') || track.platform === 'local') return null;
+    const cid = getTrackCanonicalId(track);
+    if (!cid) return null;
+
+    if (trackBlobMemoryCache.has(cid)) {
+      const entry = trackBlobMemoryCache.get(cid);
+      entry.lastAccessed = Date.now();
+      return entry;
+    }
+
+    if (inflightBlobDownloads.has(cid)) {
+      return inflightBlobDownloads.get(cid);
+    }
+
+    const downloadPromise = (async () => {
+      try {
+        const fullUrl = streamUrl.startsWith('http') ? streamUrl : `${getApiBaseUrl()}${streamUrl}`;
+        const res = await fetch(fullUrl, {
+          signal: signal || undefined,
+          headers: { 'Accept': 'audio/*, */*' }
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        if (!blob || blob.size < 1000) throw new Error('Blob empty or corrupted');
+
+        evictOldestBlobIfNeeded();
+        const blobUrl = URL.createObjectURL(blob);
+        const entry = {
+          blob,
+          blobUrl,
+          size: blob.size,
+          lastAccessed: Date.now()
+        };
+        trackBlobMemoryCache.set(cid, entry);
+        return entry;
+      } catch (err) {
+        return null;
+      } finally {
+        inflightBlobDownloads.delete(cid);
+      }
+    })();
+
+    inflightBlobDownloads.set(cid, downloadPromise);
+    return downloadPromise;
+  }
+
+  function safeSeekTo(targetTime) {
+    if (!el.nativeAudio || !Number.isFinite(targetTime)) return;
+    const target = Math.max(0, targetTime);
+    const curTrack = state.currentTrack;
+    const cid = curTrack ? getTrackCanonicalId(curTrack) : null;
+    const cached = cid ? trackBlobMemoryCache.get(cid) : null;
+
+    if (cached && cached.blobUrl && el.nativeAudio.src !== cached.blobUrl) {
+      const wasPlaying = !el.nativeAudio.paused;
+      el.nativeAudio.src = cached.blobUrl;
+      const onReady = () => {
+        try { el.nativeAudio.currentTime = target; } catch (_) {}
+        if (wasPlaying) playSmooth();
+        updateMediaPositionState();
+      };
+      if (el.nativeAudio.readyState >= 1) {
+        onReady();
+      } else {
+        el.nativeAudio.addEventListener('loadedmetadata', onReady, { once: true });
+      }
+      return;
+    }
+
+    try {
+      el.nativeAudio.currentTime = target;
+    } catch (_) {}
+    updateMediaPositionState();
+  }
+
   let preloadedTrack10sFired = false;
   async function preloadNextTrackStream() {
     if (!state.queue || state.queueIndex < 0) return;
@@ -4493,8 +4602,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             nextTrack._preloadedStreamUrl = data.streamUrl;
             if (data.resolvedId) nextTrack.resolvedId = data.resolvedId;
             nextTrack._preloadedStreamQuality = localStorage.getItem('riff_audio_quality') || 'medium';
+            if (!data.streamUrl.includes('.m3u8')) {
+              bufferTrackToBlob(nextTrack, data.streamUrl).catch(() => {});
+            }
           }
         } catch (_) {}
+      } else if (nextTrack && nextTrack._preloadedStreamUrl && !nextTrack._preloadedStreamUrl.includes('.m3u8')) {
+        bufferTrackToBlob(nextTrack, nextTrack._preloadedStreamUrl).catch(() => {});
       }
     }
   }
@@ -4673,6 +4787,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadSyncedLyrics(track.title, track.artist, currentToken);
 
     try {
+      const trackCid = getTrackCanonicalId(track);
+      const cachedBlob = trackCid ? trackBlobMemoryCache.get(trackCid) : null;
+      if (cachedBlob && cachedBlob.blobUrl) {
+        if (currentToken !== state.loadToken) return;
+        cachedBlob.lastAccessed = Date.now();
+        if (hlsInstance) {
+          try { hlsInstance.destroy(); } catch (_) {}
+          hlsInstance = null;
+        }
+        el.nativeAudio.preload = 'auto';
+        el.nativeAudio.src = cachedBlob.blobUrl;
+        playSmooth();
+        applyAudioSettings();
+        return;
+      }
+
       if (track._preloadedStreamUrl && !(track._errorRetryStage > 0)) {
         if (currentToken !== state.loadToken) return;
         if (hlsInstance) {
@@ -4698,6 +4828,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
           el.nativeAudio.src = track._preloadedStreamUrl;
           playSmooth();
+          bufferTrackToBlob(track, track._preloadedStreamUrl).catch(() => {});
         }
         applyAudioSettings();
         return;
@@ -4773,6 +4904,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else {
         el.nativeAudio.src = data.streamUrl;
         playSmooth();
+        bufferTrackToBlob(track, data.streamUrl).catch(() => {});
       }
 
       applyAudioSettings();
@@ -5383,7 +5515,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (line.time >= 0) {
         div.addEventListener('click', () => {
           const seekTime = getLineStartTime(index);
-          if (el.nativeAudio && seekTime >= 0) el.nativeAudio.currentTime = seekTime;
+          if (el.nativeAudio && seekTime >= 0) safeSeekTo(seekTime);
         });
       }
       el.lyricsContainer.appendChild(div);
@@ -5450,7 +5582,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (line.time >= 0) {
         div.addEventListener('click', () => {
           const seekTime = getLineStartTime(index);
-          if (el.nativeAudio && seekTime >= 0) el.nativeAudio.currentTime = seekTime;
+          if (el.nativeAudio && seekTime >= 0) safeSeekTo(seekTime);
         });
       }
       container.appendChild(div);
@@ -6991,8 +7123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (tvkTimeCur) tvkTimeCur.textContent = formatDuration(targetTime);
       if (el.timeCurrent) el.timeCurrent.textContent = formatDuration(targetTime);
       if (el.nativeAudio && Number.isFinite(targetTime) && dur > 0) {
-        el.nativeAudio.currentTime = targetTime;
-        updateMediaPositionState();
+        safeSeekTo(targetTime);
       }
     };
     tvkSeekSlider.addEventListener('pointerdown', () => { isDraggingTvkSeek = true; });
@@ -8619,7 +8750,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
       if (state.repeatMode === 'one') {
-        el.nativeAudio.currentTime = 0;
+        safeSeekTo(0);
         playSmooth();
       } else {
         const expectedDur = getReliableTrackDuration();
@@ -8830,8 +8961,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (el.scrubberTrack) el.scrubberTrack.classList.remove('dragging');
     const targetTime = updateScrubberPositionFromEvent(e);
     if (!isNaN(targetTime) && el.nativeAudio) {
-      el.nativeAudio.currentTime = targetTime;
-      updateMediaPositionState();
+      safeSeekTo(targetTime);
     }
     state.scrubberDragTargetTime = undefined;
   });
@@ -8873,8 +9003,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       isDraggingScrubber = false;
       const targetTime = updateTvkScrubberPositionFromEvent(e);
       if (!isNaN(targetTime) && el.nativeAudio) {
-        el.nativeAudio.currentTime = targetTime;
-        updateMediaPositionState();
+        safeSeekTo(targetTime);
       }
       state.scrubberDragTargetTime = undefined;
       try { tvkProgRowEl.releasePointerCapture(e.pointerId); } catch (_) {}
@@ -18564,6 +18693,9 @@ function bindCoverHoldZoom(wrapEl) {
   window.renderMiniLyrics = renderMiniLyrics;
   window.updateMiniLyricsHighlight = updateMiniLyricsHighlight;
   window.setSyncedLyrics = (lyrics) => { state.syncedLyrics = lyrics; renderMiniLyrics(); };
+  window.playTrack = playTrack;
+  window.safeSeekTo = safeSeekTo;
+  window.applyPerfMode = applyPerfMode;
 
   const btnMiniPlayer = document.getElementById('btn-mini-player');
   if (btnMiniPlayer) {
@@ -19717,9 +19849,9 @@ function bindCoverHoldZoom(wrapEl) {
     } else if (action === 'previous') {
       playPrev();
     } else if (action === 'seekForward' && el.nativeAudio) {
-      el.nativeAudio.currentTime = Math.min(el.nativeAudio.duration || 0, el.nativeAudio.currentTime + 5);
+      safeSeekTo(Math.min(el.nativeAudio.duration || 0, (el.nativeAudio.currentTime || 0) + 5));
     } else if (action === 'seekBack' && el.nativeAudio) {
-      el.nativeAudio.currentTime = Math.max(0, el.nativeAudio.currentTime - 5);
+      safeSeekTo(Math.max(0, (el.nativeAudio.currentTime || 0) - 5));
     } else if (action === 'volumeUp') {
       adjustVolume(0.05);
     } else if (action === 'volumeDown') {

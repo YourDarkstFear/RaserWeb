@@ -126,19 +126,6 @@
     init(audioElement) {
       if (!audioElement) return;
 
-      const isMobile = typeof window !== 'undefined' && (window.innerWidth <= 840 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || document.documentElement.classList.contains('is-mobile'));
-      if (isMobile) {
-        // On mobile devices, bypass the heavy software WebAudio DSP graph to let the OS
-        // hardware audio pipeline play directly without buffer underruns, crackling or stuttering.
-        this._attachedElement = audioElement;
-        this.graphInitialized = false;
-        try {
-          audioElement.volume = this.volume;
-          audioElement.muted = !!this.isMuted;
-        } catch (_) {}
-        return;
-      }
-
       if (this.ctx) {
         if (!audioElement.paused && this.ctx.state === 'suspended') {
           this.ctx.resume().catch(() => {});

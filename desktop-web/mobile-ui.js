@@ -19,6 +19,9 @@
     document.documentElement.style.setProperty('--font-scale', '1.0');
     document.body.style.zoom = '1';
     document.body.classList.remove('mini');
+    document.body.classList.add('perf');
+    try { localStorage.setItem('riff_perf_mode', '1'); } catch (_) {}
+    if (typeof window.applyPerfMode === 'function') window.applyPerfMode(true);
 
     // Enable Raser's signature morphing Material 3 squircle covers by default
     if (localStorage.getItem('riff_m3_cover') !== '0') {

@@ -7,28 +7,35 @@ const crypto = require('crypto');
 const { execFile } = require('child_process');
 
 const streamCache = new Map(); // key -> { url, expireAt }
+const inflightResolutions = new Map();
 
 const keepAliveHttpsAgent = new https.Agent({ keepAlive: true, maxSockets: 64, timeout: 60000 });
 const keepAliveHttpAgent = new http.Agent({ keepAlive: true, maxSockets: 64, timeout: 60000 });
 
 function resolveAudioStream(target) {
-  return new Promise((resolve, reject) => {
-    if (!target || typeof target !== 'string') {
-      return reject(new Error('Invalid target for audio stream'));
-    }
-    const cleanTarget = target.trim();
-    const isId = /^[\w-]{11}$/.test(cleanTarget);
-    const targetUrl = isId ? `https://www.youtube.com/watch?v=${cleanTarget}` : cleanTarget;
-    const cacheKey = cleanTarget;
+  if (!target || typeof target !== 'string') {
+    return Promise.reject(new Error('Invalid target for audio stream'));
+  }
+  const cleanTarget = target.trim();
+  const isId = /^[\w-]{11}$/.test(cleanTarget);
+  const targetUrl = isId ? `https://www.youtube.com/watch?v=${cleanTarget}` : cleanTarget;
+  const cacheKey = cleanTarget;
 
-    const cached = streamCache.get(cacheKey);
-    if (cached && cached.expireAt > Date.now()) {
-      return resolve(cached.url);
-    }
+  const cached = streamCache.get(cacheKey);
+  if (cached && cached.expireAt > Date.now()) {
+    return Promise.resolve(cached.url);
+  }
 
-    execFile('yt-dlp', ['-g', '-f', '140/ba/b', targetUrl], { timeout: 20000 }, (err, stdout) => {
+  if (inflightResolutions.has(cacheKey)) {
+    return inflightResolutions.get(cacheKey);
+  }
+
+  const promise = new Promise((resolve, reject) => {
+    const ytdlpArgs = ['-g', '-f', '140/ba/b', '--extractor-args', 'youtube:player_client=android,web', targetUrl];
+    execFile('yt-dlp', ytdlpArgs, { timeout: 20000 }, (err, stdout) => {
       if (err) {
         execFile('yt-dlp', ['-g', targetUrl], { timeout: 20000 }, (fErr, fOut) => {
+          inflightResolutions.delete(cacheKey);
           if (fErr) return reject(new Error('Failed to resolve audio stream: ' + (fErr.message || 'extraction error')));
           const streamUrl = (fOut || '').trim().split('\n')[0];
           if (streamUrl) {
@@ -39,6 +46,7 @@ function resolveAudioStream(target) {
         });
         return;
       }
+      inflightResolutions.delete(cacheKey);
       const streamUrl = (stdout || '').trim().split('\n')[0];
       if (streamUrl) {
         streamCache.set(cacheKey, { url: streamUrl, expireAt: Date.now() + 7200000 });
@@ -48,6 +56,9 @@ function resolveAudioStream(target) {
       }
     });
   });
+
+  inflightResolutions.set(cacheKey, promise);
+  return promise;
 }
 
 function handleAudioProxy(req, res, targetUrl, redirectsLeft = 5) {
@@ -128,6 +139,8 @@ function handleAudioProxy(req, res, targetUrl, redirectsLeft = 5) {
     outHeaders['Access-Control-Allow-Origin'] = '*';
     outHeaders['Access-Control-Allow-Headers'] = '*';
     outHeaders['Access-Control-Expose-Headers'] = 'Content-Length, Content-Range, Accept-Ranges';
+    outHeaders['X-Accel-Buffering'] = 'no';
+    outHeaders['Cache-Control'] = 'no-cache, no-transform';
 
     res.writeHead(proxyRes.statusCode || 200, outHeaders);
     proxyRes.on('error', () => {
@@ -135,6 +148,12 @@ function handleAudioProxy(req, res, targetUrl, redirectsLeft = 5) {
     });
     proxyRes.pipe(res);
   });
+
+  const abortProxy = () => {
+    try { proxyReq.destroy(); } catch (_) {}
+  };
+  req.on('close', abortProxy);
+  res.on('close', abortProxy);
 
   proxyReq.setTimeout(30000, () => {
     proxyReq.destroy(new Error('Proxy request timed out'));
@@ -946,7 +965,10 @@ const server = http.createServer(async (req, res) => {
         '.jpg': 'image/jpeg',
         '.json': 'application/json'
       };
-      res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
+      res.writeHead(200, {
+        'Content-Type': mimeTypes[ext] || 'application/octet-stream',
+        'Cache-Control': (ext === '.js' || ext === '.css' || ext === '.html') ? 'no-cache, must-revalidate' : 'public, max-age=86400'
+      });
       fs.createReadStream(desktopPath).pipe(res);
       return;
     }
