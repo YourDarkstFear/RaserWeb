@@ -1027,6 +1027,77 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Desktop Version Check & Mandatory Auto-Update
+  if (pathname === '/api/desktop-version') {
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'no-cache'
+    });
+    return res.end(JSON.stringify({
+      version: '1.0.0',
+      min_version: '1.0.0',
+      mandatory: true,
+      download_url: 'https://github.com/YourDarkstFear/RaserNative/releases/latest/download/RaserNative-Setup.exe',
+      notes: 'Raser Native - Performans optimizasyonları ve hata düzeltmeleri.',
+      pub_date: new Date().toISOString()
+    }));
+  }
+
+  // Cloud Desktop Auth Relay (Session Ticket exchange for Tauri / Desktop)
+  if (!global.__cloudAuthSessions) {
+    global.__cloudAuthSessions = new Map();
+  }
+
+  if (pathname === '/api/desktop-auth-session') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      return res.end();
+    }
+
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const payload = JSON.parse(body || '{}');
+          const sessionId = payload.sessionId;
+          const authData = payload.auth;
+          if (sessionId && authData) {
+            global.__cloudAuthSessions.set(sessionId, { auth: authData, createdAt: Date.now() });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true }));
+          }
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Missing sessionId or auth' }));
+        } catch (e) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: e.message }));
+        }
+      });
+      return;
+    }
+
+    if (req.method === 'GET') {
+      const sessionId = reqUrl.searchParams.get('sessionId') || '';
+      if (!sessionId) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ ready: false, error: 'Missing sessionId' }));
+      }
+      const entry = global.__cloudAuthSessions.get(sessionId);
+      if (entry && (Date.now() - entry.createdAt < 300000)) { // 5 min expiry
+        global.__cloudAuthSessions.delete(sessionId);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ ready: true, auth: entry.auth }));
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ ready: false }));
+    }
+  }
+
   // Desktop Google Auth Bridge
   if (pathname === '/auth-desktop' || pathname === '/auth-desktop.html') {
     const filePath = path.join(PUBLIC_DIR, 'auth-desktop.html');

@@ -716,7 +716,9 @@
         }
       } catch (_) {}
 
-      const bridgeUrl = `https://app.raserapp.online/auth-desktop?port=${port}&lang=${getLang()}`;
+      // Generate a unique session token for cloud auth handshake
+      const sessionId = 'auth_' + Math.random().toString(36).substring(2, 12) + Date.now().toString(36);
+      const bridgeUrl = `https://app.raserapp.online/auth-desktop?port=${port}&session=${sessionId}&sessionId=${sessionId}&lang=${getLang()}`;
       try {
         if (window.electronAPI && typeof window.electronAPI.openExternal === 'function') {
           window.electronAPI.openExternal(bridgeUrl);
@@ -741,6 +743,20 @@
             return reject(new Error(getLang().startsWith('tr') ? 'Google girişi zaman aşımına uğradı.' : 'Google sign-in timed out.'));
           }
 
+          // 1. Check cloud relay session first (works in Tauri without local node server)
+          try {
+            const cloudRes = await fetch(`https://app.raserapp.online/api/desktop-auth-session?sessionId=${sessionId}`);
+            if (cloudRes.ok) {
+              const cloudData = await cloudRes.json();
+              if (cloudData && cloudData.ready && cloudData.auth) {
+                clearInterval(pollTimer);
+                await handleDesktopAuthPayload(cloudData.auth);
+                return resolve(cloudData.auth);
+              }
+            }
+          } catch (_) {}
+
+          // 2. Also fallback to localhost check if Electron loopback exists
           try {
             const checkRes = await fetch(`http://127.0.0.1:${port}/api/desktop-auth-check`);
             if (checkRes.ok) {

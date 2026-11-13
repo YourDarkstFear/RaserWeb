@@ -194,6 +194,7 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const localPort = urlParams.get('port') || '38472';
+    const sessionId = urlParams.get('sessionId') || urlParams.get('session') || '';
     const lang = (urlParams.get('lang') || navigator.language || 'en').toLowerCase().startsWith('tr') ? 'tr' : 'en';
 
     const I18N = {
@@ -257,13 +258,39 @@
           googleAccessToken: googleAccessToken
         };
 
-        const res = await fetch(`http://127.0.0.1:${localPort}/api/desktop-auth-receive`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+        let transferred = false;
 
-        if (res.ok) {
+        // 1. If cloud sessionId is present, relay via cloud server
+        if (sessionId) {
+          try {
+            const relayRes = await fetch('/api/desktop-auth-session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sessionId, auth: payload })
+            });
+            if (relayRes.ok) {
+              transferred = true;
+            }
+          } catch (e) {
+            console.warn('Cloud relay attempt:', e);
+          }
+        }
+
+        // 2. Also try localhost direct bridge
+        if (!transferred) {
+          try {
+            const res = await fetch(`http://127.0.0.1:${localPort}/api/desktop-auth-receive`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            if (res.ok) transferred = true;
+          } catch (e) {
+            console.warn('Localhost bridge attempt:', e);
+          }
+        }
+
+        if (transferred) {
           promptView.classList.add('hidden');
           successView.classList.remove('hidden');
           userGreeting.textContent = `${strings.welcome}${payload.displayName}!`;
