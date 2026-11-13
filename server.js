@@ -995,11 +995,13 @@ const server = http.createServer(async (req, res) => {
     }
 
     try {
+      const reqHost = req.headers['x-forwarded-host'] || req.headers.host || 'app.raserapp.online';
+      const reqProto = req.headers['x-forwarded-proto'] || (req.socket.encrypted ? 'https' : 'http');
+      const serverOrigin = `${reqProto}://${reqHost}`;
       const rawStreamUrl = await resolveAudioStream(id, platform);
       const isHls = rawStreamUrl.includes('.m3u8') || rawStreamUrl.includes('/hls') || rawStreamUrl.includes('cf-hls-media') || rawStreamUrl.includes('playback.media-streaming');
-      const proxiedUrl = `/api/audio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
-      const forceProxy = reqUrl.searchParams.get('proxy') === '1';
-      const streamUrl = (forceProxy && !isHls) ? proxiedUrl : rawStreamUrl;
+      const proxiedUrl = `${serverOrigin}/api/audio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
+      const streamUrl = isHls ? rawStreamUrl : proxiedUrl;
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, streamUrl, proxyUrl: proxiedUrl, rawStreamUrl, isHls }));
     } catch (err) {
@@ -1013,6 +1015,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/stream-info') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', '*');
+    const reqHost = req.headers['x-forwarded-host'] || req.headers.host || 'app.raserapp.online';
+    const reqProto = req.headers['x-forwarded-proto'] || (req.socket.encrypted ? 'https' : 'http');
+    const serverOrigin = `${reqProto}://${reqHost}`;
     const reqUrlParam = (reqUrl.searchParams.get('url') || '').trim();
     const reqIdParam = (reqUrl.searchParams.get('id') || '').trim();
     const platform = (reqUrl.searchParams.get('platform') || '').trim().toLowerCase();
@@ -1028,7 +1033,7 @@ const server = http.createServer(async (req, res) => {
         const streamUrl = await fetchDirectSoundCloudStream(targetSc, queryFallback);
         if (streamUrl) {
           const isHls = streamUrl.includes('.m3u8') || streamUrl.includes('/hls') || streamUrl.includes('cf-hls-media') || streamUrl.includes('playback.media-streaming');
-          const proxiedUrl = `/api/audio-proxy?url=${encodeURIComponent(streamUrl)}`;
+          const proxiedUrl = `${serverOrigin}/api/audio-proxy?url=${encodeURIComponent(streamUrl)}`;
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
             success: true,
@@ -1056,9 +1061,8 @@ const server = http.createServer(async (req, res) => {
     try {
       const rawStreamUrl = await resolveAudioStream(target, platform, queryFallback);
       const isHls = rawStreamUrl.includes('.m3u8');
-      const proxiedUrl = `/api/audio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
-      const forceProxy = reqUrl.searchParams.get('proxy') === '1';
-      const streamUrl = (forceProxy && !isHls) ? proxiedUrl : rawStreamUrl;
+      const proxiedUrl = `${serverOrigin}/api/audio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
+      const streamUrl = isHls ? rawStreamUrl : proxiedUrl;
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         success: true,
