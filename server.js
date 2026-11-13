@@ -6,8 +6,56 @@ const url = require('url');
 const crypto = require('crypto');
 const { execFile } = require('child_process');
 
+let ytdlInstance = null;
+try {
+  const { Ytdl } = require('@distube/ytdl-core');
+  ytdlInstance = new Ytdl();
+  console.log('[FastResolver] In-memory @distube/ytdl-core engine initialized successfully.');
+} catch (e) {
+  console.warn('[FastResolver] In-memory @distube/ytdl-core not available:', e.message);
+}
+
 const streamCache = new Map(); // key -> { url, expireAt }
 const inflightResolutions = new Map();
+
+const STREAM_CACHE_FILE = path.join(__dirname, 'data', 'stream_cache.json');
+function loadStreamCacheFromDisk() {
+  try {
+    if (fs.existsSync(STREAM_CACHE_FILE)) {
+      const data = JSON.parse(fs.readFileSync(STREAM_CACHE_FILE, 'utf8'));
+      const now = Date.now();
+      let count = 0;
+      for (const [k, v] of Object.entries(data)) {
+        if (v && v.url && v.expireAt > now) {
+          streamCache.set(k, v);
+          count++;
+        }
+      }
+      console.log(`[StreamCache] Restored ${count} active stream entries from persistent disk.`);
+    }
+  } catch (e) {
+    console.warn('[StreamCache] Error restoring cache:', e.message);
+  }
+}
+
+let saveStreamCacheTimer = null;
+function saveStreamCacheToDisk() {
+  if (saveStreamCacheTimer) return;
+  saveStreamCacheTimer = setTimeout(() => {
+    saveStreamCacheTimer = null;
+    try {
+      const dataDir = path.join(__dirname, 'data');
+      if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+      const obj = {};
+      const now = Date.now();
+      for (const [k, v] of streamCache.entries()) {
+        if (v && v.expireAt > now) obj[k] = v;
+      }
+      fs.writeFileSync(STREAM_CACHE_FILE, JSON.stringify(obj), 'utf8');
+    } catch (_) {}
+  }, 3000);
+}
+loadStreamCacheFromDisk();
 
 const keepAliveHttpsAgent = new https.Agent({ keepAlive: true, maxSockets: 64, timeout: 60000 });
 const keepAliveHttpAgent = new http.Agent({ keepAlive: true, maxSockets: 64, timeout: 60000 });
@@ -115,8 +163,9 @@ function resolveAudioStream(target, platform = '', queryFallback = '') {
   }
 
   const isId = /^[\w-]{11}$/.test(cleanTarget);
-  const targetUrl = isId ? `https://www.youtube.com/watch?v=${cleanTarget}` : cleanTarget;
-  const cacheKey = cleanTarget;
+  const targetId = isId ? cleanTarget : (extractYouTubeId(cleanTarget) || null);
+  const targetUrl = targetId ? `https://www.youtube.com/watch?v=${targetId}` : cleanTarget;
+  const cacheKey = targetId || cleanTarget;
 
   const cached = streamCache.get(cacheKey);
   if (cached && cached.expireAt > Date.now()) {
@@ -127,31 +176,56 @@ function resolveAudioStream(target, platform = '', queryFallback = '') {
     return inflightResolutions.get(cacheKey);
   }
 
-  const promise = new Promise((resolve, reject) => {
-    const ytdlpArgs = ['-g', '-f', '140/ba/b', '--extractor-args', 'youtube:player_client=android,web', targetUrl];
-    execFile('yt-dlp', ytdlpArgs, { timeout: 20000 }, (err, stdout) => {
-      if (err) {
-        execFile('yt-dlp', ['-g', targetUrl], { timeout: 20000 }, (fErr, fOut) => {
-          inflightResolutions.delete(cacheKey);
-          if (fErr) return reject(new Error('Failed to resolve audio stream: ' + (fErr.message || 'extraction error')));
-          const streamUrl = (fOut || '').trim().split('\n')[0];
-          if (streamUrl) {
-            streamCache.set(cacheKey, { url: streamUrl, expireAt: Date.now() + 3600000 });
-            return resolve(streamUrl);
+  const promise = (async () => {
+    // 1. Fast Path: In-memory Node.js Ytdl engine (Ultra-fast ~1s, 0% CPU spike)
+    if (ytdlInstance && targetId) {
+      try {
+        const info = await ytdlInstance.getInfo(targetId);
+        if (info && Array.isArray(info.formats)) {
+          const audioFormats = info.formats.filter(f => f.mimeType && f.mimeType.startsWith('audio/') && f.url);
+          if (audioFormats.length > 0) {
+            audioFormats.sort((a, b) => (b.audioBitrate || b.bitrate || 0) - (a.audioBitrate || a.bitrate || 0));
+            const best = audioFormats[0];
+            const streamUrl = best.url;
+            streamCache.set(cacheKey, { url: streamUrl, expireAt: Date.now() + 18000000 }); // 5 hours
+            saveStreamCacheToDisk();
+            return streamUrl;
           }
-          reject(new Error('No stream found'));
-        });
-        return;
+        }
+      } catch (yErr) {
+        console.warn('[FastResolver] In-memory ytdl note:', yErr.message, '- falling back to yt-dlp');
       }
-      inflightResolutions.delete(cacheKey);
-      const streamUrl = (stdout || '').trim().split('\n')[0];
-      if (streamUrl) {
-        streamCache.set(cacheKey, { url: streamUrl, expireAt: Date.now() + 7200000 });
-        resolve(streamUrl);
-      } else {
-        reject(new Error('No stream URL extracted'));
-      }
+    }
+
+    // 2. Secondary Path: yt-dlp with Node runtime
+    return new Promise((resolve, reject) => {
+      const ytdlpArgs = ['--js-runtimes', 'node', '-g', '-f', '140/ba/b', targetUrl];
+      execFile('yt-dlp', ytdlpArgs, { timeout: 20000 }, (err, stdout) => {
+        if (err) {
+          execFile('yt-dlp', ['--js-runtimes', 'node', '-g', targetUrl], { timeout: 20000 }, (fErr, fOut) => {
+            if (fErr) return reject(new Error('Failed to resolve audio stream: ' + (fErr.message || 'extraction error')));
+            const streamUrl = (fOut || '').trim().split('\n')[0];
+            if (streamUrl) {
+              streamCache.set(cacheKey, { url: streamUrl, expireAt: Date.now() + 18000000 });
+              saveStreamCacheToDisk();
+              return resolve(streamUrl);
+            }
+            reject(new Error('No stream found'));
+          });
+          return;
+        }
+        const streamUrl = (stdout || '').trim().split('\n')[0];
+        if (streamUrl) {
+          streamCache.set(cacheKey, { url: streamUrl, expireAt: Date.now() + 18000000 });
+          saveStreamCacheToDisk();
+          resolve(streamUrl);
+        } else {
+          reject(new Error('No stream URL extracted'));
+        }
+      });
     });
+  })().finally(() => {
+    inflightResolutions.delete(cacheKey);
   });
 
   inflightResolutions.set(cacheKey, promise);
@@ -924,8 +998,10 @@ const server = http.createServer(async (req, res) => {
       const rawStreamUrl = await resolveAudioStream(id, platform);
       const isHls = rawStreamUrl.includes('.m3u8') || rawStreamUrl.includes('/hls') || rawStreamUrl.includes('cf-hls-media') || rawStreamUrl.includes('playback.media-streaming');
       const proxiedUrl = `/api/audio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
+      const forceProxy = reqUrl.searchParams.get('proxy') === '1';
+      const streamUrl = (forceProxy && !isHls) ? proxiedUrl : rawStreamUrl;
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, streamUrl: isHls ? rawStreamUrl : proxiedUrl, rawStreamUrl, isHls }));
+      res.end(JSON.stringify({ success: true, streamUrl, proxyUrl: proxiedUrl, rawStreamUrl, isHls }));
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: false, error: err.message }));
@@ -981,10 +1057,12 @@ const server = http.createServer(async (req, res) => {
       const rawStreamUrl = await resolveAudioStream(target, platform, queryFallback);
       const isHls = rawStreamUrl.includes('.m3u8');
       const proxiedUrl = `/api/audio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
+      const forceProxy = reqUrl.searchParams.get('proxy') === '1';
+      const streamUrl = (forceProxy && !isHls) ? proxiedUrl : rawStreamUrl;
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         success: true,
-        streamUrl: isHls ? rawStreamUrl : proxiedUrl,
+        streamUrl: streamUrl,
         proxyUrl: proxiedUrl,
         rawStreamUrl: rawStreamUrl,
         isHls: isHls,
