@@ -12,11 +12,108 @@ const inflightResolutions = new Map();
 const keepAliveHttpsAgent = new https.Agent({ keepAlive: true, maxSockets: 64, timeout: 60000 });
 const keepAliveHttpAgent = new http.Agent({ keepAlive: true, maxSockets: 64, timeout: 60000 });
 
-function resolveAudioStream(target) {
+let serverScClientId = '0cee5ACoYsXOCiDf1bzxpXPKpZmof2hI';
+let serverScClientIdTs = Date.now();
+
+async function refreshSoundCloudClientId(force = false) {
+  if (!force && serverScClientId && (Date.now() - serverScClientIdTs < 30 * 60 * 1000)) {
+    return serverScClientId;
+  }
+  try {
+    const html = await fetch('https://soundcloud.com', {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+    }).then(r => r.text());
+    const scripts = [...html.matchAll(/src="(https:\/\/a-v2\.sndcdn\.com\/assets\/[^"]+\.js)"/g)].map(m => m[1]);
+    for (let i = scripts.length - 1; i >= Math.max(0, scripts.length - 5); i--) {
+      try {
+        const js = await fetch(scripts[i]).then(r => r.text());
+        const m = js.match(/client_id\s*[:=]\s*["']([a-zA-Z0-9]{32})["']/);
+        if (m && m[1]) {
+          serverScClientId = m[1];
+          serverScClientIdTs = Date.now();
+          return serverScClientId;
+        }
+      } catch (_) {}
+    }
+  } catch (_) {}
+  return serverScClientId;
+}
+
+async function resolveScTranscoding(trackObj, cid) {
+  if (!trackObj || !trackObj.media || !Array.isArray(trackObj.media.transcodings)) return null;
+  const list = trackObj.media.transcodings;
+  const prog = list.find(t => t.format && t.format.protocol === 'progressive');
+  const hls = list.find(t => t.format && t.format.protocol === 'hls' && !/encrypted/i.test(t.format.mime_type || ''));
+  const chosen = prog || hls || list[0];
+  if (!chosen || !chosen.url) return null;
+  const sep = chosen.url.includes('?') ? '&' : '?';
+  const auth = trackObj.track_authorization ? `&track_authorization=${encodeURIComponent(trackObj.track_authorization)}` : '';
+  const res = await fetch(`${chosen.url}${sep}client_id=${cid}${auth}`, {
+    headers: { 'User-Agent': 'Mozilla/5.0' }
+  });
+  if (!res.ok) return null;
+  const j = await res.json();
+  return (j && j.url) || null;
+}
+
+async function fetchDirectSoundCloudStream(scUrlOrId, queryFallback) {
+  let cid = await refreshSoundCloudClientId(false);
+  const targetStr = String(scUrlOrId || '').trim();
+  const idMatch = targetStr.match(/(?:tracks\/|^)(\d{6,})/i);
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      if (idMatch && idMatch[1]) {
+        const r = await fetch(`https://api-v2.soundcloud.com/tracks/${idMatch[1]}?client_id=${cid}`, {
+          headers: { 'User-Agent': 'Mozilla/5.0' }
+        });
+        if (r.status === 401 || r.status === 403) {
+          cid = await refreshSoundCloudClientId(true);
+          continue;
+        }
+        if (r.ok) {
+          const tObj = await r.json();
+          const u = await resolveScTranscoding(tObj, cid);
+          if (u) return u;
+        }
+      }
+      if (queryFallback) {
+        const sr = await fetch(`https://api-v2.soundcloud.com/search/tracks?q=${encodeURIComponent(queryFallback)}&limit=5&client_id=${cid}`, {
+          headers: { 'User-Agent': 'Mozilla/5.0' }
+        });
+        if (sr.status === 401 || sr.status === 403) {
+          cid = await refreshSoundCloudClientId(true);
+          continue;
+        }
+        if (sr.ok) {
+          const sj = await sr.json();
+          const col = (sj && Array.isArray(sj.collection)) ? sj.collection : [];
+          const pick = col.find(t => t.duration > 30000 && !t.snipped) || col[0];
+          if (pick) {
+            const u = await resolveScTranscoding(pick, cid);
+            if (u) return u;
+          }
+        }
+      }
+      break;
+    } catch (_) {}
+  }
+  return null;
+}
+
+function resolveAudioStream(target, platform = '', queryFallback = '') {
   if (!target || typeof target !== 'string') {
     return Promise.reject(new Error('Invalid target for audio stream'));
   }
   const cleanTarget = target.trim();
+
+  if (platform === 'soundcloud' || cleanTarget.includes('soundcloud.com') || /^\d{6,}$/.test(cleanTarget)) {
+    return fetchDirectSoundCloudStream(cleanTarget, queryFallback).then(url => {
+      if (url) return url;
+      throw new Error('SoundCloud stream could not be resolved');
+    });
+  }
+
   const isId = /^[\w-]{11}$/.test(cleanTarget);
   const targetUrl = isId ? `https://www.youtube.com/watch?v=${cleanTarget}` : cleanTarget;
   const cacheKey = cleanTarget;
@@ -813,7 +910,10 @@ const server = http.createServer(async (req, res) => {
   // Stream resolver endpoint: /api/stream?id=...
   if (pathname === '/api/stream') {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    const id = (reqUrl.searchParams.get('id') || '').trim() || extractYouTubeId(reqUrl.searchParams.get('url') || '') || (reqUrl.searchParams.get('url') || '').trim();
+    const reqUrlParam = (reqUrl.searchParams.get('url') || '').trim();
+    const reqIdParam = (reqUrl.searchParams.get('id') || '').trim();
+    const platform = (reqUrl.searchParams.get('platform') || '').trim().toLowerCase();
+    const id = reqIdParam || extractYouTubeId(reqUrlParam) || reqUrlParam;
     if (!id) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: false, error: 'Missing track id or url' }));
@@ -821,10 +921,11 @@ const server = http.createServer(async (req, res) => {
     }
 
     try {
-      const rawStreamUrl = await resolveAudioStream(id);
+      const rawStreamUrl = await resolveAudioStream(id, platform);
+      const isHls = rawStreamUrl.includes('.m3u8') || rawStreamUrl.includes('/hls') || rawStreamUrl.includes('cf-hls-media') || rawStreamUrl.includes('playback.media-streaming');
       const proxiedUrl = `/api/audio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, streamUrl: proxiedUrl, rawStreamUrl }));
+      res.end(JSON.stringify({ success: true, streamUrl: isHls ? rawStreamUrl : proxiedUrl, rawStreamUrl, isHls }));
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: false, error: err.message }));
@@ -838,7 +939,37 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Headers', '*');
     const reqUrlParam = (reqUrl.searchParams.get('url') || '').trim();
     const reqIdParam = (reqUrl.searchParams.get('id') || '').trim();
-    const target = reqIdParam || extractYouTubeId(reqUrlParam) || reqUrlParam;
+    const platform = (reqUrl.searchParams.get('platform') || '').trim().toLowerCase();
+    const title = (reqUrl.searchParams.get('title') || '').trim();
+    const artist = (reqUrl.searchParams.get('artist') || '').trim();
+    const queryFallback = (reqUrl.searchParams.get('q') || '').trim() || (artist && title ? `${artist} - ${title}` : title);
+
+    const isSoundcloud = platform === 'soundcloud' || reqUrlParam.includes('soundcloud.com') || (!extractYouTubeId(reqIdParam) && /^\d{6,}$/.test(reqIdParam));
+
+    if (isSoundcloud) {
+      try {
+        const targetSc = reqIdParam || reqUrlParam;
+        const streamUrl = await fetchDirectSoundCloudStream(targetSc, queryFallback);
+        if (streamUrl) {
+          const isHls = streamUrl.includes('.m3u8') || streamUrl.includes('/hls') || streamUrl.includes('cf-hls-media') || streamUrl.includes('playback.media-streaming');
+          const proxiedUrl = `/api/audio-proxy?url=${encodeURIComponent(streamUrl)}`;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            success: true,
+            streamUrl: isHls ? streamUrl : proxiedUrl,
+            proxyUrl: proxiedUrl,
+            rawStreamUrl: streamUrl,
+            isHls: isHls,
+            isLocal: false
+          }));
+        }
+      } catch (scErr) {
+        console.warn('[SoundCloud Resolver] Direct SC resolution note:', scErr.message);
+      }
+    }
+
+    const ytId = extractYouTubeId(reqIdParam) || extractYouTubeId(reqUrlParam) || (/^[a-zA-Z0-9_-]{11}$/.test(reqIdParam) ? reqIdParam : '');
+    const target = ytId || (reqUrlParam.startsWith('http') ? reqUrlParam : null) || (reqIdParam.startsWith('http') ? reqIdParam : null) || (queryFallback ? `ytsearch1:${queryFallback}` : null);
 
     if (!target) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -847,15 +978,16 @@ const server = http.createServer(async (req, res) => {
     }
 
     try {
-      const rawStreamUrl = await resolveAudioStream(target);
+      const rawStreamUrl = await resolveAudioStream(target, platform, queryFallback);
+      const isHls = rawStreamUrl.includes('.m3u8');
       const proxiedUrl = `/api/audio-proxy?url=${encodeURIComponent(rawStreamUrl)}`;
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         success: true,
-        streamUrl: proxiedUrl,
+        streamUrl: isHls ? rawStreamUrl : proxiedUrl,
         proxyUrl: proxiedUrl,
         rawStreamUrl: rawStreamUrl,
-        isHls: rawStreamUrl.includes('.m3u8'),
+        isHls: isHls,
         isLocal: false
       }));
     } catch (err) {

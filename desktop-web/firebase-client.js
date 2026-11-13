@@ -154,6 +154,27 @@
     } catch (_) {}
   }
 
+  function saveUserProfile(user) {
+    if (!user || !user.uid) return;
+    const profile = {
+      uid: user.uid,
+      displayName: user.displayName || user.email?.split('@')[0] || t('guest'),
+      email: user.email || '',
+      photoURL: user.photoURL || '',
+      isAnonymous: !!user.isAnonymous
+    };
+    setLocalJSON('raser_user_profile', profile);
+    setLocalJSON('raser_desktop_user', profile);
+  }
+
+  // Restore cached user profile immediately (0ms) so there is zero delay, zero flicker, and no false logged-out state
+  try {
+    const cached = getLocalJSON('raser_user_profile', null) || getLocalJSON('raser_desktop_user', null);
+    if (cached && cached.uid) {
+      currentUser = cached;
+    }
+  } catch (_) {}
+
   // Load Firebase SDK dynamically if not loaded
   function loadScript(src) {
     return new Promise((resolve, reject) => {
@@ -185,20 +206,45 @@
       auth = window.firebase.auth();
       db = window.firebase.firestore();
 
+      try {
+        if (window.firebase && window.firebase.auth && window.firebase.auth.Auth && window.firebase.auth.Auth.Persistence) {
+          await auth.setPersistence(window.firebase.auth.Auth.Persistence.LOCAL);
+        }
+      } catch (pErr) {
+        console.warn('[RaserFirebase] setPersistence note:', pErr);
+      }
+
       auth.onAuthStateChanged(async (user) => {
         if (user) {
           currentUser = user;
+          saveUserProfile(user);
           updateAccountUI();
+
+          // Auto-close modal if user was on the login screen
+          const modal = document.getElementById('raser-account-modal');
+          if (modal && modal.classList.contains('visible')) {
+            const authView = document.getElementById('account-auth-view');
+            if (authView && !authView.classList.contains('hidden')) {
+              modal.classList.remove('visible');
+              setTimeout(() => {
+                if (!modal.classList.contains('visible')) {
+                  modal.classList.add('hidden');
+                  modal.style.display = 'none';
+                }
+              }, 200);
+            }
+          }
+
           await handleInitialSync(user);
           listenToCloudChanges(user);
         } else {
-          // Check if restored from desktop Google auth
-          const savedDesktopUser = getLocalJSON('raser_desktop_user', null);
-          if (savedDesktopUser && savedDesktopUser.uid) {
-            currentUser = savedDesktopUser;
+          // If Firebase SDK hasn't restored or reports null, check cached profile before declaring logged out
+          const savedCached = getLocalJSON('raser_user_profile', null) || getLocalJSON('raser_desktop_user', null);
+          if (savedCached && savedCached.uid) {
+            currentUser = savedCached;
             updateAccountUI();
-            await handleInitialSync(savedDesktopUser);
-            listenToCloudChanges(savedDesktopUser);
+            await handleInitialSync(savedCached);
+            listenToCloudChanges(savedCached);
           } else {
             currentUser = null;
             updateAccountUI();
@@ -565,22 +611,56 @@
   // Auth Functions exposed to UI
   async function signInWithEmail(email, password) {
     if (!auth) throw new Error('Firebase not initialized');
-    return auth.signInWithEmailAndPassword(email.trim(), password);
+    const cred = await auth.signInWithEmailAndPassword(email.trim(), password);
+    if (cred && cred.user) {
+      currentUser = cred.user;
+      saveUserProfile(cred.user);
+      updateAccountUI();
+    }
+    return cred;
   }
 
   async function registerWithEmail(email, password, displayName) {
     if (!auth) throw new Error('Firebase not initialized');
     const cred = await auth.createUserWithEmailAndPassword(email.trim(), password);
     if (displayName && cred.user) {
-      await cred.user.updateProfile({ displayName: displayName.trim() });
+      try {
+        await cred.user.updateProfile({ displayName: displayName.trim() });
+        cred.user.displayName = displayName.trim();
+      } catch (_) {}
+    }
+    if (cred && cred.user) {
+      currentUser = cred.user;
+      saveUserProfile(cred.user);
+      updateAccountUI();
     }
     return cred;
+  }
+
+  function showStatus(msg, isError = true) {
+    const statusMsg = document.getElementById('auth-status-msg');
+    if (statusMsg) {
+      statusMsg.textContent = msg;
+      statusMsg.classList.remove('hidden');
+      statusMsg.style.color = isError ? 'var(--md-sys-color-error, #ff5449)' : 'var(--md-sys-color-primary)';
+      statusMsg.style.background = isError ? 'rgba(255, 84, 73, 0.12)' : 'color-mix(in srgb, var(--md-sys-color-primary) 15%, transparent)';
+    }
+    if (typeof showToast === 'function') {
+      try { showToast(msg); } catch (_) {}
+    }
+  }
+
+  function clearStatus() {
+    const statusMsg = document.getElementById('auth-status-msg');
+    if (!statusMsg) return;
+    statusMsg.textContent = '';
+    statusMsg.classList.add('hidden');
   }
 
   async function handleDesktopAuthPayload(authData) {
     if (!authData || !authData.uid) return;
     
-    setLocalJSON('raser_desktop_user', authData);
+    saveUserProfile(authData);
     currentUser = {
       uid: authData.uid,
       displayName: authData.displayName || authData.email?.split('@')[0] || t('guest'),
@@ -605,6 +685,20 @@
     updateAccountUI();
     showStatus(t('successLogin'), false);
     
+    // Auto-close modal if open
+    const modal = document.getElementById('raser-account-modal');
+    if (modal && modal.classList.contains('visible')) {
+      setTimeout(() => {
+        modal.classList.remove('visible');
+        setTimeout(() => {
+          if (!modal.classList.contains('visible')) {
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
+          }
+        }, 200);
+      }, 600);
+    }
+
     await handleInitialSync(currentUser);
     listenToCloudChanges(currentUser);
   }
@@ -622,11 +716,15 @@
         }
       } catch (_) {}
 
-      const bridgeUrl = `https://app.raserapp.online/auth-desktop?port=${port}`;
-      if (window.electronAPI && typeof window.electronAPI.openExternal === 'function') {
-        window.electronAPI.openExternal(bridgeUrl);
-      } else {
-        window.open(bridgeUrl, '_blank');
+      const bridgeUrl = `https://app.raserapp.online/auth-desktop?port=${port}&lang=${getLang()}`;
+      try {
+        if (window.electronAPI && typeof window.electronAPI.openExternal === 'function') {
+          window.electronAPI.openExternal(bridgeUrl);
+        } else {
+          window.open(bridgeUrl, '_blank');
+        }
+      } catch (_) {
+        try { window.open(bridgeUrl, '_blank'); } catch (_) {}
       }
 
       showStatus(getLang().startsWith('tr')
@@ -734,20 +832,6 @@
 
     let isRegisterMode = false;
 
-    function showStatus(msg, isError = true) {
-      if (!statusMsg) return;
-      statusMsg.textContent = msg;
-      statusMsg.classList.remove('hidden');
-      statusMsg.style.color = isError ? 'var(--md-sys-color-error, #ff5449)' : 'var(--md-sys-color-primary)';
-      statusMsg.style.background = isError ? 'rgba(255, 84, 73, 0.12)' : 'color-mix(in srgb, var(--md-sys-color-primary) 15%, transparent)';
-    }
-
-    function clearStatus() {
-      if (!statusMsg) return;
-      statusMsg.textContent = '';
-      statusMsg.classList.add('hidden');
-    }
-
     function updateModalI18n() {
       const modalTitle = document.getElementById('account-modal-title');
       if (modalTitle) modalTitle.textContent = currentUser ? t('account') : (isRegisterMode ? t('registerTitle') : t('loginTitle'));
@@ -820,11 +904,7 @@
 
         updateStatsUI();
       } else {
-        if (isDesktop) {
-          btnClose?.classList.add('hidden');
-        } else {
-          btnClose?.classList.remove('hidden');
-        }
+        btnClose?.classList.remove('hidden');
         authView?.classList.remove('hidden');
         profileView?.classList.add('hidden');
         setAuthMode(false);
@@ -837,10 +917,6 @@
 
     function closeModal(force = false) {
       if (!modal) return;
-      if (!force && isDesktop && !currentUser) {
-        showStatus(t('mandatoryLogin'), true);
-        return;
-      }
       modal.classList.remove('visible');
       setTimeout(() => {
         if (!modal.classList.contains('visible')) {
@@ -855,21 +931,10 @@
     if (modal) {
       modal.addEventListener('click', (e) => {
         if (e.target === modal) {
-          if (isDesktop && !currentUser) {
-            showStatus(t('mandatoryLogin'), true);
-            return;
-          }
           closeModal();
         }
       });
     }
-
-    // Auto prompt on startup if not signed in
-    setTimeout(() => {
-      if (!currentUser) {
-        openModal();
-      }
-    }, 700);
 
     if (tabLogin) tabLogin.addEventListener('click', () => setAuthMode(false));
     if (tabRegister) tabRegister.addEventListener('click', () => setAuthMode(true));
@@ -898,7 +963,10 @@
             await signInWithEmail(email, pass);
           }
           if (inputPassword) inputPassword.value = '';
-          openModal();
+          showStatus(t('successLogin'), false);
+          setTimeout(() => {
+            closeModal(true);
+          }, 600);
         } catch (err) {
           let errTxt = err.message || 'Error occurred';
           if (err.code === 'auth/invalid-email') errTxt = getLang().startsWith('tr') ? 'Geçersiz e-posta adresi.' : 'Invalid email address.';
@@ -922,8 +990,13 @@
       googleBtn.addEventListener('click', async () => {
         clearStatus();
         try {
-          await signInWithGoogle();
-          openModal();
+          const res = await signInWithGoogle();
+          if (res) {
+            showStatus(t('successLogin'), false);
+            setTimeout(() => {
+              closeModal(true);
+            }, 600);
+          }
         } catch (err) {
           showStatus(err.message || 'Google sign-in error', true);
         }
@@ -978,10 +1051,12 @@
   // Start initialization when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
+      updateAccountUI();
       initFirebase();
       setupModalEvents();
     });
   } else {
+    updateAccountUI();
     initFirebase();
     setupModalEvents();
   }
