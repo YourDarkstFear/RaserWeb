@@ -124,6 +124,19 @@ async function fetchDirectSoundCloudStream(scUrlOrId, queryFallback) {
           const u = await resolveScTranscoding(tObj, cid);
           if (u) return u;
         }
+      } else if (targetStr.startsWith('http')) {
+        const r = await fetch(`https://api-v2.soundcloud.com/resolve?url=${encodeURIComponent(targetStr)}&client_id=${cid}`, {
+          headers: { 'User-Agent': 'Mozilla/5.0' }
+        });
+        if (r.status === 401 || r.status === 403) {
+          cid = await refreshSoundCloudClientId(true);
+          continue;
+        }
+        if (r.ok) {
+          const tObj = await r.json();
+          const u = await resolveScTranscoding(tObj, cid);
+          if (u) return u;
+        }
       }
       if (queryFallback) {
         const sr = await fetch(`https://api-v2.soundcloud.com/search/tracks?q=${encodeURIComponent(queryFallback)}&limit=5&client_id=${cid}`, {
@@ -144,6 +157,12 @@ async function fetchDirectSoundCloudStream(scUrlOrId, queryFallback) {
         }
       }
       break;
+    } catch (_) {}
+  }
+  // Seamless smart fallback to YouTube search if direct soundcloud stream is restricted
+  if (queryFallback) {
+    try {
+      return await resolveAudioStream(queryFallback, 'youtube');
     } catch (_) {}
   }
   return null;
@@ -970,8 +989,24 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   if (pathname === '/api/vibe') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ success: true, tracks: [] }));
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        let payload = {};
+        try { payload = JSON.parse(body || '{}'); } catch (_) {}
+        const seed = (payload.seeds && payload.seeds[0]) || 'chill pop hits 2026';
+        let results = await searchYouTubeMusic(seed);
+        if (!results || results.length === 0) results = await searchYouTubeMusic('top hits 2026');
+        if (!results || results.length === 0) results = await searchITunes('popular songs');
+        const formatted = (results || []).map(formatTrack).filter(Boolean);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, tracks: formatted }));
+      } catch (e) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, tracks: [] }));
+      }
+    });
     return;
   }
 
